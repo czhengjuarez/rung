@@ -41,7 +41,7 @@ Because you'll be using this late at night.
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite, TypeScript |
-| Design system | `@ops-forward/keel` (local file dependency) |
+| Design system | [`@ops-forward/keel`](https://github.com/czhengjuarez/Keel) — [docs](https://keel.coscient.workers.dev/) |
 | Routing | React Router v6 |
 | Backend | [Hono](https://hono.dev/) on Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite) |
@@ -52,6 +52,22 @@ Because you'll be using this late at night.
 | Observability | Cloudflare Workers Observability |
 
 Everything runs inside Cloudflare's network — there are no external services and no servers to manage.
+
+---
+
+## Keel design system
+
+Rung uses **[Keel](https://github.com/czhengjuarez/Keel)** (`@ops-forward/keel`), a lightweight design system built for Cloudflare Workers apps. Full component docs and a live playground are at [keel.coscient.workers.dev](https://keel.coscient.workers.dev/).
+
+Keel provides the utility functions (`buttonClass`, `badgeClass`, etc.) and design tokens (`--of-*` CSS variables) that Rung's components use. It is referenced as a local `file:` dependency in `package.json`, so both repos need to be cloned side by side:
+
+```
+your-workspace/
+├── Keel/    ← https://github.com/czhengjuarez/Keel
+└── rung/    ← https://github.com/czhengjuarez/rung
+```
+
+If you want to swap Keel out for another component library, the surface area is small — Keel is only used for class-name helpers and CSS variables, not for any React components with internal state.
 
 ---
 
@@ -206,41 +222,47 @@ Rung is designed to be forked. Everything runs on Cloudflare's free tier for per
 ```bash
 # 1. Fork this repo on GitHub, then clone your fork
 git clone https://github.com/YOUR_USERNAME/rung.git
+
+# 2. Clone Keel into the same parent directory (required — it's a file: dependency)
+#    Docs: https://keel.coscient.workers.dev/
+git clone https://github.com/czhengjuarez/Keel.git
+#    Your folder should now look like:
+#      your-workspace/
+#      ├── Keel/
+#      └── rung/
+
+# 3. Build Keel once
+(cd Keel && npm install && npm run keel:build)
+
+# 4. Install Rung dependencies
 cd rung
-
-# 2. Install the Keel design system (local file dependency)
-#    If you don't have the Keel repo, swap it for any component library
-#    or remove the dependency and use plain HTML elements.
-(cd ../Keel && npm install && npm run keel:build)
-
-# 3. Install Rung dependencies
 npm install
 
-# 4. Create your D1 database
+# 5. Create your D1 database
 npx wrangler d1 create rung
 #    Copy the returned database_id into wrangler.toml under [[d1_databases]]
 
-# 5. Create the R2 bucket for resume storage
+# 6. Create the R2 bucket for resume storage
 npx wrangler r2 bucket create rung-documents
 
-# 6. Apply the schema
+# 7. Apply the schema
 npm run db:apply:local   # local dev database
 npm run db:apply:remote  # production database
 
-# 7. Seed the public interview question library (optional)
+# 8. Seed the public interview question library (optional)
 npx wrangler d1 execute rung --remote --file=migrations/seed_questions.sql
 
-# 8. Set your secrets
+# 9. Set your secrets
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put JWT_SECRET          # any 32+ byte random string
 
-# 9. Register your Google OAuth redirect URIs
-#    In Google Cloud Console → APIs & Services → Credentials → your OAuth client:
-#      https://YOUR_WORKER.workers.dev/auth/google/callback
-#      http://localhost:8787/auth/google/callback
+# 10. Register your Google OAuth redirect URIs
+#     In Google Cloud Console → APIs & Services → Credentials → your OAuth client:
+#       https://YOUR_WORKER.workers.dev/auth/google/callback
+#       http://localhost:8787/auth/google/callback
 
-# 10. Update wrangler.toml
+# 11. Update wrangler.toml
 #     Set your worker name and APP_URL to match your deployment URL
 ```
 
