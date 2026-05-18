@@ -17,7 +17,8 @@ const ALLOWED_FIELDS = [
   'salary_currency',
   'applied_at',
   'notes',
-  'starred'
+  'starred',
+  'resume_id',
 ] as const;
 
 type AllowedField = (typeof ALLOWED_FIELDS)[number];
@@ -28,9 +29,10 @@ applicationsRouter.get('/', async (c) => {
   const user = c.get('user');
   const { results } = await c.env.DB
     .prepare(
-      `SELECT a.*, COUNT(DISTINCT ac.contact_id) AS contact_count
+      `SELECT a.*, COUNT(DISTINCT ac.contact_id) AS contact_count, r.label AS resume_label
        FROM applications a
        LEFT JOIN application_contacts ac ON ac.application_id = a.id
+       LEFT JOIN resumes r ON r.id = a.resume_id AND r.user_id = a.user_id
        WHERE a.user_id = ?
        GROUP BY a.id
        ORDER BY a.starred DESC, COALESCE(a.last_activity_at, a.applied_at, a.created_at) DESC`
@@ -160,6 +162,20 @@ applicationsRouter.delete('/:id', async (c) => {
     .bind(id, user.id)
     .run();
   return new Response(null, { status: 204 });
+});
+
+applicationsRouter.get('/:id/events', async (c) => {
+  const user = c.get('user');
+  const appId = c.req.param('id');
+  const owned = await c.env.DB
+    .prepare('SELECT id FROM applications WHERE id = ? AND user_id = ?')
+    .bind(appId, user.id).first();
+  if (!owned) return c.json({ error: 'not found' }, 404);
+
+  const { results } = await c.env.DB
+    .prepare('SELECT * FROM application_events WHERE application_id = ? ORDER BY occurred_at DESC')
+    .bind(appId).all();
+  return c.json({ events: results });
 });
 
 applicationsRouter.post('/:id/events', async (c) => {

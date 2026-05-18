@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { badgeClass, buttonClass, inputClass, labelClass, selectClass, textareaClass } from '@ops-forward/keel';
-import { ExternalLink, Trash2, UserMinus, UserPlus } from 'lucide-react';
+import { Clock, ExternalLink, Plus, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import { api } from '../api';
-import { APPLICATION_STATUSES, type Application, type ApplicationStatus, type Contact, type ContactLink } from '../types';
+import { APPLICATION_STATUSES, EVENT_TYPES, type Application, type ApplicationEvent, type ApplicationStatus, type Contact, type ContactLink, type EventType, type Resume } from '../types';
 
 const COMPANY_SIZES = ['', '1-10', '11-50', '51-200', '201-500', '501-2000', '2000+'];
 const WORK_MODES = ['', 'Remote', 'Hybrid', 'Onsite'];
@@ -29,6 +29,7 @@ interface State {
   salary_high: string;
   applied_at: string;
   notes: string;
+  resume_id: string;
 }
 
 function toState(a: Application | null): State {
@@ -44,7 +45,8 @@ function toState(a: Application | null): State {
     salary_low: a?.salary_low?.toString() ?? '',
     salary_high: a?.salary_high?.toString() ?? '',
     applied_at: a?.applied_at ? a.applied_at.slice(0, 10) : '',
-    notes: a?.notes ?? ''
+    notes: a?.notes ?? '',
+    resume_id: a?.resume_id ?? '',
   };
 }
 
@@ -61,6 +63,13 @@ export function ApplicationModal({
   const [saving, setSaving] = useState(false);
   const [linkedContacts, setLinkedContacts] = useState<ContactLink[]>([]);
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [events, setEvents] = useState<ApplicationEvent[]>([]);
+  const [eventType, setEventType] = useState<EventType>('Phone screen');
+  const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
+  const [eventNotes, setEventNotes] = useState('');
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [eventBusy, setEventBusy] = useState(false);
   const [addContactId, setAddContactId] = useState('');
   const [addRelationship, setAddRelationship] = useState('Recruiter');
   const [linkBusy, setLinkBusy] = useState(false);
@@ -68,11 +77,28 @@ export function ApplicationModal({
   const update = (patch: Partial<State>) => setS((prev) => ({ ...prev, ...patch }));
 
   useEffect(() => {
+    api.listResumes().then(r => setResumes(r.resumes));
     if (application) {
       api.listAppContacts(application.id).then(r => setLinkedContacts(r.contacts));
       api.listContacts().then(r => setAllContacts(r.contacts));
+      api.listAppEvents(application.id).then(r => setEvents(r.events));
     }
   }, [application]);
+
+  const logEvent = async () => {
+    if (!application) return;
+    setEventBusy(true);
+    try {
+      const r = await api.createAppEvent(application.id, {
+        type: eventType,
+        occurred_at: eventDate,
+        notes: eventNotes.trim() || undefined,
+      });
+      setEvents(prev => [r.event, ...prev]);
+      setEventNotes('');
+      setAddingEvent(false);
+    } finally { setEventBusy(false); }
+  };
 
   const availableContacts = allContacts.filter(c => !linkedContacts.some(l => l.id === c.id));
 
@@ -111,7 +137,8 @@ export function ApplicationModal({
         salary_low: s.salary_low ? Number(s.salary_low) : null,
         salary_high: s.salary_high ? Number(s.salary_high) : null,
         applied_at: s.applied_at || null,
-        notes: s.notes || null
+        notes: s.notes || null,
+        resume_id: s.resume_id || null,
       };
       if (application) {
         await api.updateApplication(application.id, body);
@@ -208,6 +235,21 @@ export function ApplicationModal({
             </div>
           </div>
           <div>
+            <label className={labelClass()} htmlFor="resume_id">Resume used</label>
+            <select id="resume_id" className={selectClass()} value={s.resume_id}
+                    onChange={(e) => update({ resume_id: e.target.value })}>
+              <option value="">— None —</option>
+              {resumes.map(r => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+            {resumes.length === 0 && (
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--rung-text-muted)' }}>
+                Upload resumes on the Resume page to track which version you sent.
+              </p>
+            )}
+          </div>
+          <div>
             <label className={labelClass()} htmlFor="notes">Notes</label>
             <textarea id="notes" className={textareaClass()} rows={4} value={s.notes}
                       onChange={(e) => update({ notes: e.target.value })} />
@@ -270,6 +312,61 @@ export function ApplicationModal({
                     <UserPlus size={14} /> Link
                   </button>
                 </div>
+              ) : null}
+            </div>
+          )}
+          {application && (
+            <div>
+              <div className="rung-activity-header">
+                <label className={labelClass()}>Activity</label>
+                {!addingEvent && (
+                  <button type="button" className="rung-activity-add-btn" onClick={() => setAddingEvent(true)}>
+                    <Plus size={12} /> Log event
+                  </button>
+                )}
+              </div>
+
+              {addingEvent && (
+                <div className="rung-activity-form">
+                  <select className={selectClass()} value={eventType}
+                          onChange={e => setEventType(e.target.value as EventType)}>
+                    {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input type="date" className={inputClass()} value={eventDate}
+                         onChange={e => setEventDate(e.target.value)} />
+                  <input className={inputClass()} placeholder="Notes (optional)"
+                         value={eventNotes} onChange={e => setEventNotes(e.target.value)} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button type="button" className={buttonClass({ variant: 'ghost' })}
+                            onClick={() => setAddingEvent(false)}>Cancel</button>
+                    <button type="button" className={buttonClass({ variant: 'primary' })}
+                            disabled={eventBusy} onClick={logEvent}>
+                      {eventBusy ? 'Saving…' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {events.length > 0 ? (
+                <div className="rung-timeline">
+                  {events.map(ev => (
+                    <div key={ev.id} className="rung-timeline-item">
+                      <span className="rung-timeline-dot" />
+                      <div className="rung-timeline-content">
+                        <span className="rung-timeline-type">{ev.type}</span>
+                        <span className="rung-timeline-date">
+                          <Clock size={11} />
+                          {new Date(ev.occurred_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        {ev.notes && <p className="rung-timeline-notes">{ev.notes}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !addingEvent ? (
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--rung-text-muted)' }}>
+                  No activity logged yet.
+                </p>
               ) : null}
             </div>
           )}

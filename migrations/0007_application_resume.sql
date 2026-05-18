@@ -1,0 +1,1 @@
+ALTER TABLE applications ADD COLUMN resume_id TEXT REFERENCES resumes(id) ON DELETE SET NULL;

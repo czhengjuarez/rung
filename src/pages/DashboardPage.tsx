@@ -7,7 +7,6 @@ import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from '
 import type { AppContext } from '../App';
 import { ApplicationModal } from '../components/ApplicationModal';
 import { CsvImportModal } from '../components/CsvImportModal';
-import { LeadsPanel } from '../components/LeadsPanel';
 
 const statusVariant: Record<ApplicationStatus, 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'default'> = {
   Approached:            'blue',
@@ -122,8 +121,11 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="rung-section-header" onClick={() => setAppsOpen(o => !o)}>
+      <div className={`rung-section-header${appsOpen ? ' open' : ''}`} onClick={() => setAppsOpen(o => !o)}>
         <div className="rung-section-header-left">
+          <span className="rung-section-chevron">
+            {appsOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+          </span>
           <h1>Applications</h1>
           {!appsOpen && apps.length > 0 && (
             <span className="rung-section-summary">
@@ -139,14 +141,11 @@ export default function DashboardPage() {
           <button className={buttonClass({ variant: 'primary' })} onClick={() => setCreating(true)}>
             <Plus size={16} /> New
           </button>
-          <button className="rung-icon-btn" onClick={() => setAppsOpen(o => !o)} aria-label={appsOpen ? 'Collapse' : 'Expand'}>
-            {appsOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </button>
         </div>
       </div>
 
       {appsOpen && (
-        <>
+        <div className="rung-section-body">
           {apps.length > 0 && (
             <div className="rung-kpi-strip">
               <div className="rung-kpi-card">
@@ -232,12 +231,13 @@ export default function DashboardPage() {
                       <th></th>
                       <th title="Linked contacts"><Users size={13} /></th>
                       {([
-                        ['company',    'Company'],
-                        ['role',       'Role'],
-                        ['location',   'Location'],
-                        ['industry',   'Industry'],
-                        ['status',     'Status'],
-                        ['applied_at', 'Applied'],
+                        ['company',      'Company'],
+                        ['role',         'Role'],
+                        ['location',     'Location'],
+                        ['industry',     'Industry'],
+                        ['resume_label', 'Resume'],
+                        ['status',       'Status'],
+                        ['applied_at',   'Applied'],
                       ] as [keyof Application, string][]).map(([key, label]) => (
                         <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
                           {label} <SortIcon col={key} />
@@ -264,6 +264,11 @@ export default function DashboardPage() {
                         <td>{app.role || '—'}</td>
                         <td>{app.location || '—'}</td>
                         <td>{app.industry || '—'}</td>
+                        <td style={{ maxWidth: 120 }}>
+                          {app.resume_label
+                            ? <span className="rung-resume-chip" title={app.resume_label}>{app.resume_label}</span>
+                            : <span style={{ color: 'var(--rung-text-faint)' }}>—</span>}
+                        </td>
                         <td>
                           <span className={badgeClass({ variant: statusVariant[app.status] })}>
                             {app.status}
@@ -301,7 +306,7 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </>
+        </div>
       )}
 
       {(creating || editing) && (
@@ -328,7 +333,6 @@ export default function DashboardPage() {
         />
       )}
 
-      <LeadsPanel onApplicationAdded={() => { refresh(); ctx.showToast('Added to applications'); }} />
     </>
   );
 }

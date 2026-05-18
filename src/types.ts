@@ -72,6 +72,8 @@ export interface Application {
   last_activity_at: string | null;
   starred: number; // SQLite: 0/1
   notes: string | null;
+  resume_id: string | null;
+  resume_label: string | null;
   created_at: string;
   updated_at: string;
   contact_count: number;
@@ -123,6 +125,27 @@ export interface ProfileLink {
   sort_order: number;
 }
 
+export type InterviewCategory = 'Behavioral' | 'Technical' | 'Situational' | 'Leadership' | 'Company-specific' | 'Other';
+export const INTERVIEW_CATEGORIES: InterviewCategory[] = ['Behavioral', 'Technical', 'Situational', 'Leadership', 'Company-specific', 'Other'];
+
+export interface InterviewQuestion {
+  id: string;
+  user_id: string;
+  question: string;
+  category: InterviewCategory;
+  tags: string | null;
+  hint: string | null;
+  visibility: 'public' | 'private';
+  source: string | null;
+  contributor_name: string;
+  my_answer: string | null;
+  my_notes: string | null;
+  answer_id: string | null;
+  is_mine: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LeadCriteria {
   user_id: string;
   title_keywords: string | null;
@@ -145,6 +168,55 @@ export interface LeadSource {
   url: string | null;
   label: string;
   active: number;
+  created_at: string;
+}
+
+export const EVENT_TYPES = [
+  'Phone screen',
+  'HM interview',
+  'Technical interview',
+  'Onsite',
+  'Offer received',
+  'Rejection',
+  'Follow-up sent',
+  'Note',
+  'Other',
+] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
+
+export interface ApplicationEvent {
+  id: string;
+  application_id: string;
+  type: EventType;
+  occurred_at: string;
+  notes: string | null;
+}
+
+export interface CoachFeedback {
+  score: number;
+  structure: string;
+  strengths: string[];
+  improvements: string[];
+  rewrite_tip: string;
+}
+
+export interface Resume {
+  id: string;
+  label: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  has_text: number; // 0 | 1
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TailoredResume {
+  id: string;
+  source_resume_id: string;
+  job_title: string | null;
+  company: string | null;
+  tailored_text: string;
   created_at: string;
 }
 

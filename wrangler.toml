@@ -15,13 +15,15 @@ binding = "DB"
 database_name = "rung"
 database_id = "ca907d6f-a4cd-4d89-8079-30f2b8a565c3"
 
-# Phase 2+ — uncomment after creating the bucket
-# [[r2_buckets]]
-# binding = "DOCS"
-# bucket_name = "rung-documents"
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "rung-documents"
 
 [ai]
 binding = "AI"
+
+[observability]
+enabled = true
 
 [triggers]
 crons = ["0 7 * * *"]

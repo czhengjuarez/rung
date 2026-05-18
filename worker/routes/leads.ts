@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { Env, Variables } from '../types';
 import { newId, nowIso } from '../util';
 import { runLeadsFetch } from '../cron/fetchLeads';
-import { scoreLeads } from '../cron/scoreLeads';
+import { scoreLeads, scoreSingleLead } from '../cron/scoreLeads';
 
 export const leadsRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -180,6 +180,15 @@ leadsRouter.post('/:id/convert', async (c) => {
   const application = await c.env.DB
     .prepare('SELECT * FROM applications WHERE id = ?').bind(appId).first();
   return c.json({ application }, 201);
+});
+
+// On-demand score a single lead
+leadsRouter.post('/:id/score', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const result = await scoreSingleLead(c.env.DB, c.env.AI, id, user.id);
+  if (!result) return c.json({ error: 'not found' }, 404);
+  return c.json(result);
 });
 
 // Manual trigger — scoped to the current user, returns per-source counts

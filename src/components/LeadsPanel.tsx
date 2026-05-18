@@ -14,8 +14,15 @@ const SOURCE_LABELS: Record<string, string> = {
   rss: 'RSS feed',
 };
 
-function ScoreDot({ score }: { score: number | null }) {
-  if (score === null) return <span className="rung-score-dot unscored" title="Scoring pending…">?</span>;
+function ScoreDot({ score, scoring, onScore }: { score: number | null; scoring?: boolean; onScore?: () => void }) {
+  if (scoring) return <span className="rung-score-dot unscored scoring" title="Scoring…"><Loader2 size={10} className="spin" /></span>;
+  if (score === null) {
+    return (
+      <button className="rung-score-dot unscored btn" title="Score now with AI" onClick={onScore}>
+        ?
+      </button>
+    );
+  }
   const cls = score >= 7 ? 'high' : score >= 4 ? 'mid' : 'low';
   return <span className={`rung-score-dot ${cls}`} title={`Match score: ${score}/10`}>{score}</span>;
 }
@@ -353,6 +360,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<RunSourceResult[] | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [scoring, setScoring] = useState<Set<string>>(new Set());
 
   const refresh = async () => {
     setLoading(true);
@@ -370,6 +378,18 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
     await api.convertLead(id);
     setLeads(prev => prev.filter(l => l.id !== id));
     onConverted();
+  };
+
+  const scoreNow = async (id: string) => {
+    setScoring(prev => new Set(prev).add(id));
+    try {
+      const result = await api.scoreLead(id);
+      setLeads(prev => prev.map(l =>
+        l.id === id ? { ...l, score: result.score, score_reason: result.score_reason } : l
+      ));
+    } finally {
+      setScoring(prev => { const s = new Set(prev); s.delete(id); return s; });
+    }
   };
 
   const run = async () => {
@@ -417,7 +437,11 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
           {leads.map(lead => (
             <div key={lead.id} className="rung-lead-row">
               <div className="rung-lead-main" onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
-                <ScoreDot score={lead.score} />
+                <ScoreDot
+                  score={lead.score}
+                  scoring={scoring.has(lead.id)}
+                  onScore={() => scoreNow(lead.id)}
+                />
                 <div className="rung-lead-info">
                   <strong>{lead.title}</strong>
                   <span className="rung-lead-meta">
@@ -463,55 +487,83 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
 }
 
 // ── Main panel ────────────────────────────────────────────────────────────────
-export function LeadsPanel({ onApplicationAdded }: { onApplicationAdded: () => void }) {
-  const [open, setOpen] = useState(true);
+function LeadsPanelBody({ onApplicationAdded }: { onApplicationAdded: () => void }) {
   const [tab, setTab] = useState<'leads' | 'settings'>('leads');
   const [criteriaMsg, setCriteriaMsg] = useState('');
+
+  return (
+    <>
+      <div className="rung-leads-tabs">
+        <button className={`rung-tab ${tab === 'leads' ? 'active' : ''}`} onClick={() => setTab('leads')}>
+          Leads
+        </button>
+        <button className={`rung-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+          Settings
+        </button>
+      </div>
+
+      {tab === 'leads' && (
+        <LeadsTable onConverted={onApplicationAdded} />
+      )}
+
+      {tab === 'settings' && (
+        <div className="rung-leads-settings">
+          <h3>Job search criteria</h3>
+          <p className="rung-leads-section-hint">
+            Workers AI uses these to score each lead 1–10 for fit.
+          </p>
+          <CriteriaForm onSaved={() => setCriteriaMsg('Criteria saved!')} />
+          {criteriaMsg && <p className="rung-leads-saved-msg">{criteriaMsg}</p>}
+
+          <h3 style={{ marginTop: 24 }}>Sources</h3>
+          <p className="rung-leads-section-hint">
+            Add Greenhouse / Lever / Workable company slugs or RSS URLs. Polled daily at 7 AM UTC.
+          </p>
+          <SourcesManager />
+        </div>
+      )}
+    </>
+  );
+}
+
+export function LeadsPanel({
+  onApplicationAdded,
+  standalone = false,
+}: {
+  onApplicationAdded: () => void;
+  standalone?: boolean;
+}) {
+  const [open, setOpen] = useState(true);
+
+  if (standalone) {
+    return (
+      <div className="rung-leads-page">
+        <div className="rung-page-heading">
+          <h1>Job Leads</h1>
+          <p className="rung-page-subheading">Daily job discovery from your sources, scored by AI</p>
+        </div>
+        <div className="rung-leads-panel rung-leads-panel--standalone">
+          <LeadsPanelBody onApplicationAdded={onApplicationAdded} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rung-leads-panel">
       <div className="rung-leads-header" onClick={() => setOpen(o => !o)}>
         <div className="rung-leads-title">
+          <span className="rung-section-chevron">
+            {open ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+          </span>
           <span>Job Leads</span>
           <span className="rung-leads-subtitle">Daily job discovery from your sources</span>
         </div>
-        <button className="rung-icon-btn" aria-label={open ? 'Collapse' : 'Expand'}
-          onClick={e => { e.stopPropagation(); setOpen(o => !o); }}>
-          {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-        </button>
       </div>
 
       {open && (
         <div className="rung-leads-body">
-          <div className="rung-leads-tabs">
-            <button className={`rung-tab ${tab === 'leads' ? 'active' : ''}`} onClick={() => setTab('leads')}>
-              Leads
-            </button>
-            <button className={`rung-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-              Settings
-            </button>
-          </div>
-
-          {tab === 'leads' && (
-            <LeadsTable onConverted={() => { onApplicationAdded(); }} />
-          )}
-
-          {tab === 'settings' && (
-            <div className="rung-leads-settings">
-              <h3>Job search criteria</h3>
-              <p className="rung-leads-section-hint">
-                Workers AI uses these to score each lead 1–10 for fit.
-              </p>
-              <CriteriaForm onSaved={() => setCriteriaMsg('Criteria saved!')} />
-              {criteriaMsg && <p className="rung-leads-saved-msg">{criteriaMsg}</p>}
-
-              <h3 style={{ marginTop: 24 }}>Sources</h3>
-              <p className="rung-leads-section-hint">
-                Add Greenhouse / Lever / Workable company slugs or RSS URLs. Polled daily at 7 AM UTC.
-              </p>
-              <SourcesManager />
-            </div>
-          )}
+          <LeadsPanelBody onApplicationAdded={onApplicationAdded} />
         </div>
       )}
     </div>

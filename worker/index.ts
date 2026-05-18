@@ -2,7 +2,9 @@ import { Hono } from 'hono';
 import { authRouter, loadUser, logout, requireUser } from './auth';
 import { applicationsRouter } from './routes/applications';
 import { contactsRouter } from './routes/contacts';
+import { interviewRouter } from './routes/interview';
 import { leadsRouter } from './routes/leads';
+import { resumesRouter } from './routes/resumes';
 import { linksRouter } from './routes/links';
 import { profileRouter } from './routes/profile';
 import { publicRouter } from './routes/public';
@@ -37,6 +39,12 @@ api.route('/contacts', contactsRouter);
 
 api.use('/leads/*', requireUser);
 api.route('/leads', leadsRouter);
+
+api.use('/interview/*', requireUser);
+api.route('/interview', interviewRouter);
+
+api.use('/resumes/*', requireUser);
+api.route('/resumes', resumesRouter);
 
 api.use('/profile/*', requireUser);
 api.route('/profile', profileRouter);

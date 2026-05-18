@@ -1,4 +1,4 @@
-import type { Application, Contact, ContactLink, JobLead, LeadCriteria, LeadSource, OwnProfile, ProfileLink, PublicProfile, ShortcutLink, User } from './types';
+import type { Application, ApplicationEvent, CoachFeedback, Contact, ContactLink, InterviewQuestion, JobLead, LeadCriteria, LeadSource, OwnProfile, ProfileLink, PublicProfile, Resume, ShortcutLink, TailoredResume, User } from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -54,6 +54,11 @@ export const api = {
   getContactApplications: (id: string) =>
     request<{ applications: Array<{ id: string; company: string; role: string | null; status: string; relationship: string }> }>(`/api/contacts/${id}/applications`),
 
+  listAppEvents: (appId: string) =>
+    request<{ events: ApplicationEvent[] }>(`/api/applications/${appId}/events`),
+  createAppEvent: (appId: string, body: { type: string; occurred_at: string; notes?: string }) =>
+    request<{ event: ApplicationEvent }>(`/api/applications/${appId}/events`, { method: 'POST', body: JSON.stringify(body) }),
+
   listAppContacts: (appId: string) =>
     request<{ contacts: ContactLink[] }>(`/api/applications/${appId}/contacts`),
   linkContact: (appId: string, contactId: string, relationship: string) =>
@@ -85,7 +90,47 @@ export const api = {
 
   listLeads: (state: string = 'new') =>
     request<{ leads: JobLead[] }>(`/api/leads?state=${encodeURIComponent(state)}`),
+  scoreLead: (id: string) => request<{ score: number; score_reason: string }>(`/api/leads/${id}/score`, { method: 'POST' }),
   dismissLead: (id: string) => request<{ ok: boolean }>(`/api/leads/${id}/dismiss`, { method: 'POST' }),
   convertLead: (id: string) => request<{ application: Application }>(`/api/leads/${id}/convert`, { method: 'POST' }),
   runLeads: () => request<{ ok: boolean; inserted: number; sources: Array<{ source_id: string; label: string; fetched: number; inserted: number; error: string | null }> }>('/api/leads/run', { method: 'POST' }),
+
+  listInterviewQuestions: (tab: 'public' | 'private', category?: string) =>
+    request<{ questions: InterviewQuestion[] }>(`/api/interview/questions?tab=${tab}${category ? `&category=${encodeURIComponent(category)}` : ''}`),
+  createInterviewQuestion: (body: Partial<InterviewQuestion> & { hint?: string }) =>
+    request<{ question: InterviewQuestion }>('/api/interview/questions', { method: 'POST', body: JSON.stringify(body) }),
+  updateInterviewQuestion: (id: string, body: Partial<InterviewQuestion>) =>
+    request<{ ok: boolean }>(`/api/interview/questions/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteInterviewQuestion: (id: string) =>
+    request<void>(`/api/interview/questions/${id}`, { method: 'DELETE' }),
+
+  coachAnswer: (body: { question: string; answer: string; category?: string }) =>
+    request<{ feedback: CoachFeedback }>('/api/interview/coach', { method: 'POST', body: JSON.stringify(body) }),
+
+  saveInterviewAnswer: (questionId: string, body: { answer?: string; notes?: string }) =>
+    request<{ ok: boolean }>(`/api/interview/answers/${questionId}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteInterviewAnswer: (questionId: string) =>
+    request<void>(`/api/interview/answers/${questionId}`, { method: 'DELETE' }),
+
+  listResumes: () => request<{ resumes: Resume[] }>('/api/resumes'),
+  getTailorUsage: () => request<{ used: number; limit: number }>('/api/resumes/tailor-usage'),
+  uploadResume: (formData: FormData) =>
+    fetch('/api/resumes', { method: 'POST', credentials: 'include', body: formData }).then(async (res) => {
+      if (!res.ok) { const t = await res.text(); throw new Error(t || `Upload failed: ${res.status}`); }
+      return res.json() as Promise<{ resume: Resume }>;
+    }),
+  updateResume: (id: string, body: { label?: string; resume_text?: string }) =>
+    request<{ ok: boolean }>(`/api/resumes/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteResume: (id: string) => request<void>(`/api/resumes/${id}`, { method: 'DELETE' }),
+  downloadResumeUrl: (id: string) => `/api/resumes/${id}/download`,
+
+  tailorResume: (resumeId: string, body: {
+    job_description: string; job_title?: string; company?: string;
+    application_id?: string; job_lead_id?: string;
+  }) => request<{ id: string; tailored_text: string }>(`/api/resumes/${resumeId}/tailor`, { method: 'POST', body: JSON.stringify(body) }),
+
+  listTailoredResumes: (resumeId: string) =>
+    request<{ tailored: TailoredResume[] }>(`/api/resumes/${resumeId}/tailored`),
+  getTailoredResume: (tailoredId: string) =>
+    request<{ tailored: TailoredResume }>(`/api/resumes/tailored/${tailoredId}`),
 };

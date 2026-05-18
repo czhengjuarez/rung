@@ -52,6 +52,68 @@ interface AiResponse {
   response?: string;
 }
 
+export async function scoreSingleLead(
+  db: D1Database,
+  ai: Ai,
+  leadId: string,
+  userId: string,
+): Promise<{ score: number; score_reason: string } | null> {
+  const lead = await db
+    .prepare(
+      `SELECT id, user_id, title, company, location, work_mode, salary_hint, description
+       FROM job_leads WHERE id = ? AND user_id = ?`
+    )
+    .bind(leadId, userId)
+    .first<Lead>();
+  if (!lead) return null;
+
+  const criteria = await db
+    .prepare('SELECT * FROM lead_criteria WHERE user_id = ?')
+    .bind(userId)
+    .first<Criteria>();
+
+  if (!criteria) {
+    const score = 5;
+    const score_reason = 'No criteria set; score defaulted to neutral.';
+    await db
+      .prepare('UPDATE job_leads SET score = ?, score_reason = ?, scored_at = ? WHERE id = ?')
+      .bind(score, score_reason, nowIso(), leadId)
+      .run();
+    return { score, score_reason };
+  }
+
+  const userMessage = buildPrompt(lead, criteria);
+  const result = (await ai.run('@cf/meta/llama-3.1-8b-instruct', {
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a job-fit evaluator. Given a job posting and candidate criteria, rate how well the job matches on a scale of 1-10. Respond with valid JSON only: {"score": <integer 1-10>, "reason": "<one sentence>"}. No other text.',
+      },
+      { role: 'user', content: userMessage },
+    ],
+  })) as AiResponse;
+
+  const text = result?.response ?? '';
+  const jsonMatch = /\{[\s\S]*?\}/.exec(text);
+  let score = 5;
+  let score_reason = 'Could not parse AI response.';
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as { score?: number; reason?: string };
+      if (typeof parsed.score === 'number') score = Math.max(1, Math.min(10, Math.round(parsed.score)));
+      if (typeof parsed.reason === 'string') score_reason = parsed.reason.slice(0, 300);
+    } catch { /* use defaults */ }
+  }
+
+  await db
+    .prepare('UPDATE job_leads SET score = ?, score_reason = ?, scored_at = ? WHERE id = ?')
+    .bind(score, score_reason, nowIso(), leadId)
+    .run();
+
+  return { score, score_reason };
+}
+
 export async function scoreLeads(db: D1Database, ai: Ai): Promise<void> {
   const { results: allCriteria } = await db
     .prepare('SELECT * FROM lead_criteria')
@@ -62,13 +124,16 @@ export async function scoreLeads(db: D1Database, ai: Ai): Promise<void> {
   const criteriaByUser = new Map<string, Criteria>();
   for (const c of allCriteria) criteriaByUser.set(c.user_id, c);
 
-  // Process up to 50 unscored leads per cron run
+  // Score up to 5 unscored leads per user per cron run (fair across all users)
   const { results: leads } = await db
     .prepare(
       `SELECT id, user_id, title, company, location, work_mode, salary_hint, description
-       FROM job_leads
-       WHERE state = 'new' AND scored_at IS NULL
-       LIMIT 50`
+       FROM (
+         SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY fetched_at ASC) AS rn
+         FROM job_leads
+         WHERE state = 'new' AND scored_at IS NULL
+       )
+       WHERE rn <= 5`
     )
     .all<Lead>();
 
