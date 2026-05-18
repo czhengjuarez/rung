@@ -1,0 +1,109 @@
+:root {
+  --rung-brand: #FB41AA;
+  --rung-brand-deep: #8F1F57;
+  --rung-brand-gradient: linear-gradient(180deg, #FB41AA 0%, #8F1F57 100%);
+
+  --rung-bg: #FAFAFA;
+  --rung-surface: #FFFFFF;
+  --rung-surface-2: #F5F5F7;
+  --rung-border: #E5E5EA;
+  --rung-text: #1C1C1E;
+  --rung-text-muted: #6E6E73;
+  --rung-text-faint: #A1A1A6;
+
+  --rung-radius-sm: 6px;
+  --rung-radius-md: 10px;
+  --rung-radius-lg: 14px;
+
+  --rung-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --rung-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --rung-space-1: 4px;
+  --rung-space-2: 8px;
+  --rung-space-3: 12px;
+  --rung-space-4: 16px;
+  --rung-space-5: 24px;
+  --rung-space-6: 32px;
+
+  color-scheme: light;
+
+  /* Keel design token bridge — maps --of-* vars used by keel components */
+  --of-font-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  --of-radius-sm: 6px;
+  --of-radius-md: 8px;
+  --of-radius-lg: 12px;
+  --of-dur-fast: 140ms;
+  --of-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --of-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --of-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+  /* Brand */
+  --of-bg-brand: #FB41AA;
+  --of-fg-on-brand: #FFFFFF;
+  --of-fg-brand: #C41882;
+  --of-bg-brand-tint: rgba(251, 65, 170, 0.12);
+  --of-border-brand: rgba(251, 65, 170, 0.4);
+  --of-ring: rgba(251, 65, 170, 0.3);
+  --of-magenta-400: #FB41AA;
+
+  /* Neutral */
+  --of-bg-elevated: #FFFFFF;
+  --of-bg-recessed: #F5F5F7;
+  --of-fg-default: #1C1C1E;
+  --of-fg-muted: #6E6E73;
+  --of-fg-subtle: #A1A1A6;
+  --of-border-line: #E5E5EA;
+  --of-gray-300: #D1D5DB;
+
+  /* Status: green */
+  --of-bg-success-tint: #DCFCE7;
+  --of-fg-success: #166534;
+
+  /* Status: amber */
+  --of-bg-warning-tint: #FEF3C7;
+  --of-fg-warning: #92400E;
+
+  /* Status: red */
+  --of-bg-danger-tint: #FEE2E2;
+  --of-fg-danger: #991B1B;
+  --of-danger-500: #EF4444;
+
+  /* Status: blue */
+  --of-bg-info-tint: #DBEAFE;
+  --of-fg-info: #1E40AF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rung-bg: #0B0B0F;
+    --rung-surface: #17171C;
+    --rung-surface-2: #1F1F25;
+    --rung-border: #2A2A31;
+    --rung-text: #F2F2F7;
+    --rung-text-muted: #98989F;
+    --rung-text-faint: #6E6E73;
+    color-scheme: dark;
+
+    /* Keel dark overrides */
+    --of-bg-elevated: #17171C;
+    --of-bg-recessed: #1F1F25;
+    --of-fg-default: #F2F2F7;
+    --of-fg-muted: #98989F;
+    --of-fg-subtle: #6E6E73;
+    --of-border-line: #2A2A31;
+    --of-fg-brand: #FB41AA;
+    --of-bg-brand-tint: rgba(251, 65, 170, 0.18);
+
+    --of-bg-success-tint: #14532D;
+    --of-fg-success: #86EFAC;
+
+    --of-bg-warning-tint: #451A03;
+    --of-fg-warning: #FCD34D;
+
+    --of-bg-danger-tint: #450A0A;
+    --of-fg-danger: #FCA5A5;
+
+    --of-bg-info-tint: #1E3A8A;
+    --of-fg-info: #93C5FD;
+  }
+}

@@ -1,0 +1,34 @@
+name = "rung"
+main = "worker/index.ts"
+compatibility_date = "2026-04-24"
+compatibility_flags = ["nodejs_compat"]
+account_id = "d6ff2f0914adb1d9faae77870fadb7cc"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rung"
+database_id = "ca907d6f-a4cd-4d89-8079-30f2b8a565c3"
+
+# Phase 2+ — uncomment after creating the bucket
+# [[r2_buckets]]
+# binding = "DOCS"
+# bucket_name = "rung-documents"
+
+[ai]
+binding = "AI"
+
+[triggers]
+crons = ["0 7 * * *"]
+
+[vars]
+APP_URL = "https://rung.coscient.workers.dev"
+# Secrets (set via `wrangler secret put`):
+#   GOOGLE_CLIENT_ID =
+#   GOOGLE_CLIENT_SECRET =
+#   JWT_SECRET =
