@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Briefcase, FileText, HelpCircle, Link2, LogOut, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Briefcase, FileText, HelpCircle, Link2, LogOut, MoreHorizontal, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
 import { api } from './api';
 import type { User } from './types';
+import { RungLogo } from './components/RungLogo';
 import { Toast } from './components/Toast';
 
 type Theme = 'light' | 'dark';
@@ -33,11 +34,28 @@ const NAV_GROUPS = [
   },
 ] as const;
 
+const BOTTOM_TABS = [
+  { to: '/',          label: 'Jobs',      icon: Briefcase,  end: true },
+  { to: '/leads',     label: 'Leads',     icon: Sparkles,   end: false },
+  { to: '/interview', label: 'Prep',      icon: HelpCircle, end: false },
+  { to: '/resume',    label: 'Resume',    icon: FileText,   end: false },
+] as const;
+
+const MORE_ITEMS = [
+  { to: '/contacts', label: 'Contacts', icon: Users },
+  { to: '/profile',  label: 'Profile',  icon: UserIcon },
+  { to: '/links',    label: 'Links',    icon: Link2 },
+] as const;
+
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     document.documentElement.style.colorScheme = theme;
@@ -64,7 +82,7 @@ export default function App() {
     <div className="rung-shell">
       <aside className="rung-sidebar">
         <div className="rung-sidebar-brand">
-          <span className="rung-brand-mark" aria-hidden />
+          <RungLogo size={22} />
           <span className="rung-sidebar-brand-name">Rung</span>
         </div>
 
@@ -111,6 +129,60 @@ export default function App() {
       <main className="rung-main">
         <Outlet context={{ user, showToast: (msg: string) => setToast(msg) }} />
       </main>
+
+      {/* Bottom tab bar — mobile only */}
+      <nav className="rung-bottom-nav">
+        {BOTTOM_TABS.map(tab => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            end={tab.end}
+            className={({ isActive }) => `rung-bottom-tab${isActive ? ' active' : ''}`}
+          >
+            <tab.icon size={22} />
+            <span>{tab.label}</span>
+          </NavLink>
+        ))}
+        <button
+          className={`rung-bottom-tab${moreOpen || MORE_ITEMS.some(i => location.pathname.startsWith(i.to)) ? ' active' : ''}`}
+          onClick={() => setMoreOpen(o => !o)}
+        >
+          <MoreHorizontal size={22} />
+          <span>More</span>
+        </button>
+      </nav>
+
+      {/* More sheet + backdrop — mobile only */}
+      {moreOpen && (
+        <>
+          <div className="rung-sheet-backdrop" onClick={() => setMoreOpen(false)} />
+          <div className="rung-more-sheet">
+            {MORE_ITEMS.map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `rung-sheet-item${isActive ? ' active' : ''}`}
+                onClick={() => setMoreOpen(false)}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </NavLink>
+            ))}
+            <div className="rung-sheet-divider" />
+            <button
+              className="rung-sheet-item"
+              onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+            >
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              {theme === 'light' ? 'Dark mode' : 'Light mode'}
+            </button>
+            <button className="rung-sheet-item rung-sheet-item--danger" onClick={onLogout}>
+              <LogOut size={18} />
+              Log out
+            </button>
+          </div>
+        </>
+      )}
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>

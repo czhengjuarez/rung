@@ -1,0 +1,18 @@
+{
+  "name": "Rung",
+  "short_name": "Rung",
+  "description": "Your job search, finally under control.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#FB41AA",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

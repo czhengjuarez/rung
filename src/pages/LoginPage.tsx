@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { RungLogo } from '../components/RungLogo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function LoginPage() {
     <div className="rung-login">
       <div className="rung-login-card">
         <div className="rung-brand">
-          <span className="rung-brand-mark" aria-hidden />
+          <RungLogo size={28} />
           Rung
         </div>
         <p>Track your job search. One ladder, one rung at a time.</p>
