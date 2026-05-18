@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { badgeClass, buttonClass } from '@ops-forward/keel';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, Plus, Search, Star, Upload, Users } from 'lucide-react';
 import { api } from '../api';
 import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from '../types';
 import type { AppContext } from '../App';
@@ -61,6 +61,18 @@ export default function DashboardPage() {
 
   const refresh = () => api.listApplications().then((r) => setApps(r.applications));
   useEffect(() => { refresh(); }, []);
+
+  const downloadCsv = async () => {
+    const res = await fetch('/api/applications/export', { credentials: 'include' });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rung-applications-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const kpis = useMemo(() => {
     const weekMs = 7 * 24 * 60 * 60 * 1000;
@@ -135,8 +147,11 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="rung-section-header-right" onClick={e => e.stopPropagation()}>
+          <button className={buttonClass({ variant: 'ghost' })} onClick={downloadCsv}>
+            <Download size={15} /> Export
+          </button>
           <button className={buttonClass({ variant: 'ghost' })} onClick={() => setImporting(true)}>
-            <Upload size={15} /> Import CSV
+            <Upload size={15} /> Import
           </button>
           <button className={buttonClass({ variant: 'primary' })} onClick={() => setCreating(true)}>
             <Plus size={16} /> New

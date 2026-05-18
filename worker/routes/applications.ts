@@ -111,6 +111,51 @@ applicationsRouter.post('/import', async (c) => {
   return c.json({ imported: toInsert.length });
 });
 
+applicationsRouter.get('/export', async (c) => {
+  const user = c.get('user');
+  const { results } = await c.env.DB
+    .prepare(
+      `SELECT company, role, status, location, work_mode, size, industry, stage,
+              referral, salary_low, salary_high, salary_currency,
+              applied_at, last_activity_at, starred, notes, created_at
+       FROM applications
+       WHERE user_id = ?
+       ORDER BY COALESCE(last_activity_at, applied_at, created_at) DESC`
+    )
+    .bind(user.id).all<Record<string, unknown>>();
+
+  const col = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    const s = v === 1 ? 'Yes' : v === 0 && typeof v === 'number' ? 'No' : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const headers = [
+    'Company', 'Role', 'Status', 'Location', 'Work Mode', 'Size', 'Industry',
+    'Stage', 'Referral', 'Salary Low', 'Salary High', 'Currency',
+    'Applied At', 'Last Activity', 'Starred', 'Notes', 'Created At',
+  ];
+
+  const rows = results.map(r =>
+    [
+      r.company, r.role, r.status, r.location, r.work_mode, r.size, r.industry,
+      r.stage, r.referral, r.salary_low, r.salary_high, r.salary_currency,
+      r.applied_at, r.last_activity_at, r.starred, r.notes, r.created_at,
+    ].map(col).join(',')
+  );
+
+  const csv = [headers.join(','), ...rows].join('\r\n');
+  const date = new Date().toISOString().slice(0, 10);
+
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="rung-applications-${date}.csv"`,
+    },
+  });
+});
+
 applicationsRouter.get('/:id', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
