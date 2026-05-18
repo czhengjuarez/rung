@@ -25,7 +25,7 @@ api.get('/me', async (c) => {
 
 api.post('/auth/logout', async (c) => {
   await logout(c);
-  return new Response(null, { status: 204 });
+  return c.body(null, 204);
 });
 
 api.use('/links/*', requireUser);
