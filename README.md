@@ -55,11 +55,10 @@ Rung will appear on your home screen with the ladder icon. Opening it from there
 ### Installing on Android
 
 1. Open [rung.coscient.workers.dev](https://rung.coscient.workers.dev) in **Chrome**
-2. Tap the three-dot menu (⋮) in the top right
-3. Tap **Add to Home screen** or **Install app**
-4. Confirm and tap **Add**
+2. A bar appears at the bottom of the screen — tap **Add to Home screen** and confirm
+3. The Rung icon is added to your home screen
 
-Chrome may also show an install banner automatically at the bottom of the screen.
+Next time you visit in Chrome, the bar will show **"Open Rung"** instead — tap it to launch the installed app directly, or just open it from your home screen.
 
 ### Mobile navigation
 
