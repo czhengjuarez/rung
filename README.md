@@ -34,6 +34,47 @@ Quick-access shortcuts to the sites you visit constantly during a job search —
 ### Dark mode
 Because you'll be using this late at night.
 
+### Mobile
+Rung works on your phone out of the box — no app store required. Open it in your mobile browser and you get a native-feeling experience: a bottom tab bar for the four main sections (Jobs, Leads, Interview Prep, Resume) and a "More" sheet for the rest. It can also be installed directly to your home screen so it opens full-screen like a real app.
+
+---
+
+## Using Rung on mobile
+
+Rung is a Progressive Web App (PWA). The full feature set works in your phone's browser, and you can install it to your home screen for a full-screen, app-like experience.
+
+### Installing on iPhone / iPad
+
+1. Open [rung.coscient.workers.dev](https://rung.coscient.workers.dev) in **Safari** (must be Safari — other iOS browsers can't install PWAs)
+2. Tap the **Share** button (the box with an arrow pointing up)
+3. Scroll down and tap **Add to Home Screen**
+4. Give it a name and tap **Add**
+
+Rung will appear on your home screen with the ladder icon. Opening it from there launches it full-screen with no browser address bar.
+
+### Installing on Android
+
+1. Open [rung.coscient.workers.dev](https://rung.coscient.workers.dev) in **Chrome**
+2. Tap the three-dot menu (⋮) in the top right
+3. Tap **Add to Home screen** or **Install app**
+4. Confirm and tap **Add**
+
+Chrome may also show an install banner automatically at the bottom of the screen.
+
+### Mobile navigation
+
+On screens narrower than 640px the sidebar is replaced by a bottom tab bar:
+
+| Tab | What it does |
+|---|---|
+| **Jobs** | Your applications tracker |
+| **Leads** | Job leads feed and scoring |
+| **Prep** | Interview question bank and AI coach |
+| **Resume** | Upload and tailor your resumes |
+| **More** | Contacts, Profile, Links, theme toggle, logout |
+
+Tapping **More** slides up a sheet. Tapping anywhere outside it or navigating closes it automatically.
+
 ---
 
 ## Tech stack
@@ -162,6 +203,10 @@ Migrations live in `./migrations/` and are applied sequentially with `wrangler d
 ```
 rung/
 ├── wrangler.toml            Cloudflare Worker config (D1, R2, AI, cron)
+├── public/
+│   ├── favicon.svg          Browser tab icon (32×32, ladder on gradient)
+│   ├── icon.svg             PWA home screen icon (512×512)
+│   └── manifest.webmanifest PWA install manifest
 ├── migrations/              SQL migration files (applied in order)
 │   ├── 0001_initial.sql
 │   ├── 0002_profile_links.sql
@@ -180,6 +225,7 @@ rung/
 │   ├── components/
 │   │   ├── ApplicationModal.tsx   Full application editor (resume, events, contacts)
 │   │   ├── LeadsPanel.tsx         Job leads UI with on-demand scoring
+│   │   ├── RungLogo.tsx           Ladder SVG icon (sidebar + login page)
 │   │   └── Toast.tsx
 │   ├── pages/
 │   │   ├── LoginPage.tsx
@@ -352,7 +398,6 @@ Contributions are welcome. If you have an idea for a feature or improvement, ope
 
 - Third-party integrations that require server-side secrets beyond what's already in `wrangler.toml`
 - Features that require a paid Cloudflare plan
-- Mobile app versions
 
 ### Code style
 
