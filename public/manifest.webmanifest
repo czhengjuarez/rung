@@ -4,10 +4,22 @@
   "description": "Your job search, finally under control.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAFAFA",
+  "background_color": "#FB41AA",
   "theme_color": "#FB41AA",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/icon.svg",
       "sizes": "any",
