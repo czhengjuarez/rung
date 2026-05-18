@@ -178,3 +178,9 @@ These are out of scope for the code itself — pre-deploy setup:
 - Offer comparison tool.
 - Push notifications.
 - Team / shared-tracker features.
+
+
+## Quick notes for self
+- Interview Questions
+- Fine tune AI prompts
+- Check Job App Collapsible
