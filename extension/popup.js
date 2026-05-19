@@ -76,23 +76,20 @@ async function doAutofill({ silent = false } = {}) {
 
   // ── Step 1: try content script (in-page DOM scrape) ──────────────────────
   const data = await scrapeTab();
-  const hasData = data.title || data.company;
 
-  if (hasData) {
+  // Fill whatever the content script found (company, salary may be partial)
+  if (data.title || data.company || data.location || data.salary_hint) {
     fillForm(data, { overwriteEmpty: true });
-    if (!silent) showAutofillStatus('✓ Fields filled from page');
-    btn.disabled = false;
-    iconNormal.classList.remove('hidden');
-    iconSpin.classList.add('hidden');
-    return data;
   }
 
-  // ── Step 2: server-side scrape fallback ───────────────────────────────────
-  // Content script couldn't read the DOM (JS-rendered content, permission
-  // issues, etc.) — send the URL to Rung's backend which fetches + parses
-  // via OpenGraph / JSON-LD / AI.
-  const urlToScrape = data.url || (await getCurrentTabUrl());
-  if (urlToScrape) {
+  // ── Step 2: server-side scrape ────────────────────────────────────────────
+  // Always run if title is still missing — title is the proof we read the
+  // actual job panel. Company/salary can come from other elements on the page.
+  // Server result fills only the fields still blank (overwriteEmpty=true).
+  const missingTitle = !document.getElementById('f-title').value.trim();
+  const urlToScrape  = data.url || (await getCurrentTabUrl());
+
+  if (missingTitle && urlToScrape) {
     if (!silent) showAutofillStatus('Reading via Rung…');
     try {
       const result = await api('/api/leads/scrape', {
@@ -115,6 +112,8 @@ async function doAutofill({ silent = false } = {}) {
     } catch {
       if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
     }
+  } else if (!missingTitle) {
+    if (!silent) showAutofillStatus('✓ Fields filled from page');
   } else {
     if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
   }
