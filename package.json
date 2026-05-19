@@ -14,6 +14,9 @@
     "db:apply:remote": "wrangler d1 execute rung --remote --file=./migrations/0001_initial.sql"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@ops-forward/keel": "file:../Keel/packages/keel",
     "hono": "^4.6.14",
     "lucide-react": "^0.469.0",

@@ -37,6 +37,8 @@ export const api = {
       body: JSON.stringify(body)
     }),
   deleteApplication: (id: string) => request<void>(`/api/applications/${id}`, { method: 'DELETE' }),
+  reorderApplications: (ids: string[]) =>
+    request<{ ok: boolean }>('/api/applications/reorder', { method: 'PATCH', body: JSON.stringify({ ids }) }),
 
   getProfile: () => request<{ profile: OwnProfile }>('/api/profile'),
   updateProfile: (body: Partial<OwnProfile>) =>

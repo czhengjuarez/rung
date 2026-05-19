@@ -1,7 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { badgeClass, buttonClass } from '@ops-forward/keel';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import { APPLICATION_STATUSES, type Application, type ApplicationStatus } from '../types';
 import type { AppContext } from '../App';
@@ -47,6 +64,65 @@ function lastTouch(app: Application): string {
   return app.last_activity_at ?? app.applied_at ?? app.created_at;
 }
 
+// ── Sortable table row ────────────────────────────────────────────────────────
+
+interface SortableRowProps {
+  app: Application;
+  isDragMode: boolean;
+  onOpen: () => void;
+  onToggleStar: () => void;
+}
+
+function SortableRow({ app, isDragMode, onOpen, onToggleStar }: SortableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: app.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isDragMode ? 'default' : undefined,
+    zIndex: isDragging ? 1 : undefined,
+    position: isDragging ? ('relative' as const) : undefined,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} onClick={onOpen}>
+      <td
+        className={`rung-drag-handle${isDragMode ? ' active' : ''}`}
+        onClick={e => e.stopPropagation()}
+        {...(isDragMode ? { ...attributes, ...listeners } : {})}
+      >
+        {isDragMode && <GripVertical size={14} />}
+      </td>
+      <td onClick={(e) => { e.stopPropagation(); onToggleStar(); }}>
+        <button className={`rung-star ${app.starred ? 'on' : ''}`} aria-label="Star">
+          <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
+        </button>
+      </td>
+      <td style={{ color: app.contact_count > 0 ? 'var(--rung-text-muted)' : 'var(--rung-text-faint)', fontSize: 12 }}>
+        {app.contact_count > 0 ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Users size={12} /> {app.contact_count}
+          </span>
+        ) : '—'}
+      </td>
+      <td><strong>{app.company}</strong></td>
+      <td>{app.role || '—'}</td>
+      <td>{app.location || '—'}</td>
+      <td>{app.industry || '—'}</td>
+      <td style={{ maxWidth: 120 }}>
+        {app.resume_label
+          ? <span className="rung-resume-chip" title={app.resume_label}>{app.resume_label}</span>
+          : <span style={{ color: 'var(--rung-text-faint)' }}>—</span>}
+      </td>
+      <td>
+        <span className={badgeClass({ variant: statusVariant[app.status] })}>
+          {app.status}
+        </span>
+      </td>
+      <td>{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
+    </tr>
+  );
+}
+
 export default function DashboardPage() {
   const ctx = useOutletContext<AppContext>();
   const [apps, setApps] = useState<Application[]>([]);
@@ -61,6 +137,27 @@ export default function DashboardPage() {
 
   const refresh = () => api.listApplications().then((r) => setApps(r.applications));
   useEffect(() => { refresh(); }, []);
+
+  const isDragMode = sortKey === null && query === '' && statusFilter === 'all';
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = apps.findIndex(a => a.id === active.id);
+    const newIndex = apps.findIndex(a => a.id === over.id);
+    const reordered = arrayMove(apps, oldIndex, newIndex);
+    setApps(reordered);
+    try {
+      await api.reorderApplications(reordered.map(a => a.id));
+    } catch {
+      refresh();
+    }
+  };
 
   const downloadCsv = async () => {
     const res = await fetch('/api/applications/export', { credentials: 'include' });
@@ -238,88 +335,71 @@ export default function DashboardPage() {
                 : 'No applications match your filters.'}
             </div>
           ) : (
-            <>
-              <div className="rung-table-wrap">
-                <table className="rung-table">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th title="Linked contacts"><Users size={13} /></th>
-                      {([
-                        ['company',      'Company'],
-                        ['role',         'Role'],
-                        ['location',     'Location'],
-                        ['industry',     'Industry'],
-                        ['resume_label', 'Resume'],
-                        ['status',       'Status'],
-                        ['applied_at',   'Applied'],
-                      ] as [keyof Application, string][]).map(([key, label]) => (
-                        <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
-                          {label} <SortIcon col={key} />
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={filtered.map(a => a.id)} strategy={verticalListSortingStrategy}>
+                <div className="rung-table-wrap">
+                  <table className="rung-table">
+                    <thead>
+                      <tr>
+                        <th className="rung-th-grip" title={isDragMode ? 'Drag to reorder' : 'Clear filters to reorder'}>
+                          {isDragMode && <GripVertical size={13} style={{ opacity: 0.4 }} />}
                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((app) => (
-                      <tr key={app.id} onClick={() => setEditing(app)}>
-                        <td onClick={(e) => { e.stopPropagation(); toggleStar(app); }}>
-                          <button className={`rung-star ${app.starred ? 'on' : ''}`} aria-label="Star">
-                            <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
-                          </button>
-                        </td>
-                        <td style={{ color: app.contact_count > 0 ? 'var(--rung-text-muted)' : 'var(--rung-text-faint)', fontSize: 12 }}>
-                          {app.contact_count > 0 ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              <Users size={12} /> {app.contact_count}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td><strong>{app.company}</strong></td>
-                        <td>{app.role || '—'}</td>
-                        <td>{app.location || '—'}</td>
-                        <td>{app.industry || '—'}</td>
-                        <td style={{ maxWidth: 120 }}>
-                          {app.resume_label
-                            ? <span className="rung-resume-chip" title={app.resume_label}>{app.resume_label}</span>
-                            : <span style={{ color: 'var(--rung-text-faint)' }}>—</span>}
-                        </td>
-                        <td>
-                          <span className={badgeClass({ variant: statusVariant[app.status] })}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td>{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
+                        <th></th>
+                        <th title="Linked contacts"><Users size={13} /></th>
+                        {([
+                          ['company',      'Company'],
+                          ['role',         'Role'],
+                          ['location',     'Location'],
+                          ['industry',     'Industry'],
+                          ['resume_label', 'Resume'],
+                          ['status',       'Status'],
+                          ['applied_at',   'Applied'],
+                        ] as [keyof Application, string][]).map(([key, label]) => (
+                          <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
+                            {label} <SortIcon col={key} />
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filtered.map((app) => (
+                        <SortableRow
+                          key={app.id}
+                          app={app}
+                          isDragMode={isDragMode}
+                          onOpen={() => setEditing(app)}
+                          onToggleStar={() => toggleStar(app)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="rung-cards">
-                {filtered.map((app) => (
-                  <div className="rung-card" key={app.id} onClick={() => setEditing(app)}>
-                    <div className="row">
-                      <span className="company">{app.company}</span>
-                      <button
-                        className={`rung-star ${app.starred ? 'on' : ''}`}
-                        aria-label="Star"
-                        onClick={(e) => { e.stopPropagation(); toggleStar(app); }}
-                      >
-                        <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
-                      </button>
+                <div className="rung-cards">
+                  {filtered.map((app) => (
+                    <div className="rung-card" key={app.id} onClick={() => setEditing(app)}>
+                      <div className="row">
+                        <span className="company">{app.company}</span>
+                        <button
+                          className={`rung-star ${app.starred ? 'on' : ''}`}
+                          aria-label="Star"
+                          onClick={(e) => { e.stopPropagation(); toggleStar(app); }}
+                        >
+                          <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
+                        </button>
+                      </div>
+                      <div className="meta">{app.role || '—'} · {app.location || '—'}</div>
+                      <div className="row">
+                        <span className={badgeClass({ variant: statusVariant[app.status] })}>{app.status}</span>
+                        <span className="meta">
+                          {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : 'no date'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="meta">{app.role || '—'} · {app.location || '—'}</div>
-                    <div className="row">
-                      <span className={badgeClass({ variant: statusVariant[app.status] })}>{app.status}</span>
-                      <span className="meta">
-                        {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : 'no date'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       )}

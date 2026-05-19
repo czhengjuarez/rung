@@ -35,7 +35,7 @@ applicationsRouter.get('/', async (c) => {
        LEFT JOIN resumes r ON r.id = a.resume_id AND r.user_id = a.user_id
        WHERE a.user_id = ?
        GROUP BY a.id
-       ORDER BY a.starred DESC, COALESCE(a.last_activity_at, a.applied_at, a.created_at) DESC`
+       ORDER BY COALESCE(a.rank, 999999) ASC, a.starred DESC, COALESCE(a.last_activity_at, a.applied_at, a.created_at) DESC`
     )
     .bind(user.id)
     .all();
@@ -154,6 +154,17 @@ applicationsRouter.get('/export', async (c) => {
       'Content-Disposition': `attachment; filename="rung-applications-${date}.csv"`,
     },
   });
+});
+
+applicationsRouter.patch('/reorder', async (c) => {
+  const user = c.get('user');
+  const { ids } = await c.req.json<{ ids: string[] }>();
+  if (!Array.isArray(ids) || ids.length === 0) return c.json({ error: 'ids required' }, 400);
+  const stmts = ids.map((id, i) =>
+    c.env.DB.prepare('UPDATE applications SET rank = ? WHERE id = ? AND user_id = ?').bind(i + 1, id, user.id)
+  );
+  await c.env.DB.batch(stmts);
+  return c.json({ ok: true });
 });
 
 applicationsRouter.get('/:id', async (c) => {

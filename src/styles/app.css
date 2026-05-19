@@ -524,6 +524,25 @@ a { color: inherit; }
 .rung-th-sort:hover { color: var(--rung-text); }
 .rung-th-sort svg { vertical-align: middle; margin-left: 3px; }
 
+.rung-th-grip {
+  width: 24px;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.rung-drag-handle {
+  width: 24px;
+  padding: 0 4px;
+  text-align: center;
+  color: var(--rung-text-faint);
+}
+.rung-drag-handle.active {
+  cursor: grab;
+  color: var(--rung-text-muted);
+}
+.rung-drag-handle.active:hover { color: var(--rung-text); }
+.rung-drag-handle.active:active { cursor: grabbing; }
+
 .rung-star {
   background: transparent;
   border: 0;
