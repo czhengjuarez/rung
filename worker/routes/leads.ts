@@ -144,6 +144,61 @@ leadsRouter.get('/', async (c) => {
   return c.json({ leads: results });
 });
 
+// ── Browser extension clip ────────────────────────────────────────────────────
+// POST /api/leads/clip — add a manually clipped lead from the browser extension.
+// Returns 409 if the URL already exists for this user.
+
+leadsRouter.post('/clip', async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json<{
+    title: string;
+    company: string;
+    external_url: string;
+    location?: string;
+    salary_hint?: string;
+    description?: string;
+  }>();
+
+  if (!body.title?.trim() || !body.company?.trim()) {
+    return c.json({ error: 'title and company are required' }, 400);
+  }
+
+  // Normalise the URL — fall back to a placeholder so the UNIQUE constraint
+  // doesn't conflate multiple URL-less clips.
+  const url = body.external_url?.trim() || `rung://clip/${newId()}`;
+
+  // Check for duplicate URL (same user)
+  const existing = await c.env.DB
+    .prepare('SELECT id FROM job_leads WHERE user_id = ? AND external_url = ?')
+    .bind(user.id, url).first<{ id: string }>();
+
+  if (existing) {
+    return c.json({ error: 'You already have this URL in your leads.', id: existing.id }, 409);
+  }
+
+  const id = newId();
+  await c.env.DB.prepare(
+    `INSERT INTO job_leads
+       (id, user_id, source_id, external_url, title, company, location, salary_hint, description, state, fetched_at)
+     VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, 'new', ?)`
+  ).bind(
+    id,
+    user.id,
+    url,
+    body.title.trim(),
+    body.company.trim(),
+    body.location?.trim() ?? null,
+    body.salary_hint?.trim() ?? null,
+    body.description?.slice(0, 5000) ?? null,
+    nowIso(),
+  ).run();
+
+  const lead = await c.env.DB
+    .prepare('SELECT * FROM job_leads WHERE id = ?')
+    .bind(id).first();
+  return c.json({ lead }, 201);
+});
+
 leadsRouter.post('/:id/dismiss', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rung</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Loading state -->
+    <div id="view-loading" class="view">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Not logged in -->
+    <div id="view-login" class="view hidden">
+      <div class="logo-row">
+        <img src="icons/icon-48.png" width="28" height="28" alt="" />
+        <span class="brand">Rung</span>
+      </div>
+      <p class="login-msg">Sign in to Rung to start clipping job leads.</p>
+      <button id="btn-open-rung" class="btn-primary">Open Rung to sign in</button>
+    </div>
+
+    <!-- Main clip form -->
+    <div id="view-form" class="view hidden">
+      <div class="header">
+        <div class="logo-row">
+          <img src="icons/icon-48.png" width="20" height="20" alt="" />
+          <span class="brand">Rung</span>
+        </div>
+        <span class="header-hint">Add to leads</span>
+      </div>
+
+      <form id="clip-form">
+        <div class="field">
+          <label for="f-title">Job title <span class="req">*</span></label>
+          <input id="f-title" name="title" type="text" required placeholder="e.g. Senior Software Engineer" />
+        </div>
+        <div class="field">
+          <label for="f-company">Company <span class="req">*</span></label>
+          <input id="f-company" name="company" type="text" required placeholder="e.g. Acme Corp" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-location">Location</label>
+            <input id="f-location" name="location" type="text" placeholder="e.g. Remote" />
+          </div>
+          <div class="field">
+            <label for="f-salary">Salary hint</label>
+            <input id="f-salary" name="salary_hint" type="text" placeholder="e.g. $140k–$180k" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-url">Job URL</label>
+          <input id="f-url" name="url" type="url" />
+        </div>
+        <div class="field">
+          <label for="f-notes">Notes <span class="optional">(optional)</span></label>
+          <textarea id="f-notes" name="notes" rows="2" placeholder="Why you're interested, referral name, etc."></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="btn-save" class="btn-primary">
+            <svg id="icon-add" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg id="icon-spin" class="hidden spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            Add to leads
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success -->
+    <div id="view-success" class="view hidden">
+      <div class="success-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <p class="success-title">Lead added!</p>
+      <p class="success-sub" id="success-label"></p>
+      <div class="actions">
+        <button id="btn-view-leads" class="btn-secondary">View in Rung</button>
+        <button id="btn-add-another" class="btn-ghost">Add another</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="view-error" class="view hidden">
+      <p class="error-msg" id="error-msg"></p>
+      <button id="btn-retry" class="btn-ghost">Try again</button>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
