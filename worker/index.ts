@@ -10,6 +10,8 @@ import { profileRouter } from './routes/profile';
 import { publicRouter } from './routes/public';
 import { runLeadsFetch } from './cron/fetchLeads';
 import { scoreLeads } from './cron/scoreLeads';
+import { sendDailyNotifications } from './cron/sendNotifications';
+import { pushRouter } from './routes/push';
 import type { Env, Variables } from './types';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -51,6 +53,11 @@ api.route('/profile', profileRouter);
 
 api.route('/public', publicRouter);
 
+// Push: vapid-public-key is unauthenticated; subscribe + preferences require auth
+api.get('/push/vapid-public-key', (c) => pushRouter.fetch(c.req.raw, c.env, c.executionCtx));
+api.use('/push/*', requireUser);
+api.route('/push', pushRouter);
+
 app.route('/api', api);
 
 app.all('*', async (c) => {
@@ -60,8 +67,25 @@ app.all('*', async (c) => {
 export default {
   fetch: app.fetch.bind(app),
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(
-      runLeadsFetch(env.DB, undefined).then(() => scoreLeads(env.DB, env.AI))
-    );
+    ctx.waitUntil((async () => {
+      const fetchResults = await runLeadsFetch(env.DB, undefined);
+      await scoreLeads(env.DB, env.AI);
+
+      // Build per-user new-lead counts for notification logic
+      const newLeadsByUser = new Map<string, number>();
+      for (const r of fetchResults) {
+        if (r.inserted > 0) {
+          // fetchResults has source-level counts; attribute to the source owner
+          const row = await env.DB
+            .prepare('SELECT user_id FROM lead_sources WHERE id = ?')
+            .bind(r.source_id).first<{ user_id: string }>();
+          if (row) {
+            newLeadsByUser.set(row.user_id, (newLeadsByUser.get(row.user_id) ?? 0) + r.inserted);
+          }
+        }
+      }
+
+      await sendDailyNotifications(env.DB, env.VAPID_PRIVATE_KEY, env.VAPID_PUBLIC_KEY, newLeadsByUser);
+    })());
   },
 };

@@ -30,7 +30,9 @@ crons = ["0 7 * * *"]
 
 [vars]
 APP_URL = "https://rung.coscient.workers.dev"
+VAPID_PUBLIC_KEY = "BO7oKJyRhrGeS3QCXm09w0BYn1llwL0qez58kajKucdcVs-Sl7DYZxP4GBh0Y3J21wSXQJFpRvys3U9XWpzmJsc"
 # Secrets (set via `wrangler secret put`):
 #   GOOGLE_CLIENT_ID =
 #   GOOGLE_CLIENT_SECRET =
 #   JWT_SECRET =
+#   VAPID_PRIVATE_KEY =

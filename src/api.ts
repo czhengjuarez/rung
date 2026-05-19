@@ -1,4 +1,4 @@
-import type { Application, ApplicationEvent, CoachFeedback, Contact, ContactLink, InterviewQuestion, JobLead, LeadCriteria, LeadSource, OwnProfile, ProfileLink, PublicProfile, Resume, ShortcutLink, TailoredResume, User } from './types';
+import type { Application, ApplicationEvent, CoachFeedback, Contact, ContactLink, InterviewQuestion, JobLead, LeadCriteria, LeadSource, NotificationPreferences, OwnProfile, ProfileLink, PublicProfile, Resume, ShortcutLink, TailoredResume, User } from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -133,4 +133,15 @@ export const api = {
     request<{ tailored: TailoredResume[] }>(`/api/resumes/${resumeId}/tailored`),
   getTailoredResume: (tailoredId: string) =>
     request<{ tailored: TailoredResume }>(`/api/resumes/tailored/${tailoredId}`),
+
+  getVapidPublicKey: () =>
+    request<{ publicKey: string }>('/api/push/vapid-public-key'),
+  subscribePush: (body: { endpoint: string; p256dh: string; auth: string }) =>
+    request<{ ok: boolean }>('/api/push/subscribe', { method: 'POST', body: JSON.stringify(body) }),
+  unsubscribePush: (endpoint: string) =>
+    request<void>('/api/push/subscribe', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+  getNotifPrefs: () =>
+    request<{ preferences: NotificationPreferences | null }>('/api/push/preferences'),
+  saveNotifPrefs: (body: Partial<NotificationPreferences>) =>
+    request<{ preferences: NotificationPreferences }>('/api/push/preferences', { method: 'PUT', body: JSON.stringify(body) }),
 };

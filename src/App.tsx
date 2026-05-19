@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, FileText, HelpCircle, Link2, LogOut, MoreHorizontal, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MoreHorizontal, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
 import { api } from './api';
 import type { User } from './types';
 import { RungLogo } from './components/RungLogo';
@@ -27,9 +27,10 @@ const NAV_GROUPS = [
   {
     label: 'Personal',
     items: [
-      { to: '/resume',  label: 'Resume',  icon: FileText,  end: false },
-      { to: '/profile', label: 'Profile', icon: UserIcon,  end: false },
-      { to: '/links',   label: 'Links',   icon: Link2, end: false },
+      { to: '/resume',        label: 'Resume',        icon: FileText,  end: false },
+      { to: '/profile',       label: 'Profile',       icon: UserIcon,  end: false },
+      { to: '/links',         label: 'Links',         icon: Link2,     end: false },
+      { to: '/notifications', label: 'Notifications', icon: Bell,      end: false },
     ],
   },
 ] as const;
@@ -42,9 +43,10 @@ const BOTTOM_TABS = [
 ] as const;
 
 const MORE_ITEMS = [
-  { to: '/contacts', label: 'Contacts', icon: Users },
-  { to: '/profile',  label: 'Profile',  icon: UserIcon },
-  { to: '/links',    label: 'Links',    icon: Link2 },
+  { to: '/contacts',      label: 'Contacts',      icon: Users },
+  { to: '/profile',       label: 'Profile',       icon: UserIcon },
+  { to: '/links',         label: 'Links',         icon: Link2 },
+  { to: '/notifications', label: 'Notifications', icon: Bell },
 ] as const;
 
 export default function App() {

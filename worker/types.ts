@@ -7,6 +7,8 @@ export interface Env {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   JWT_SECRET: string;
+  VAPID_PUBLIC_KEY: string;
+  VAPID_PRIVATE_KEY: string;
 }
 
 export interface SessionUser {

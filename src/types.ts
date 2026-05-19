@@ -240,3 +240,12 @@ export interface JobLead {
   scored_at: string | null;
   converted_application_id: string | null;
 }
+
+export interface NotificationPreferences {
+  follow_up_enabled: number;
+  follow_up_days: number;
+  new_leads_enabled: number;
+  high_score_enabled: number;
+  high_score_threshold: number;
+  weekly_summary: number;
+}
