@@ -7,4 +7,3 @@ dist/
 .env.*
 *.local
 .vite/
-.github/workflows/
