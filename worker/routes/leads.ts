@@ -368,13 +368,44 @@ leadsRouter.post('/clip', async (c) => {
   // doesn't conflate multiple URL-less clips.
   const url = body.external_url?.trim() || `rung://clip/${newId()}`;
 
-  // Check for duplicate URL (same user)
+  // Check for existing lead with this URL
   const existing = await c.env.DB
-    .prepare('SELECT id FROM job_leads WHERE user_id = ? AND external_url = ?')
-    .bind(user.id, url).first<{ id: string }>();
+    .prepare('SELECT id, state FROM job_leads WHERE user_id = ? AND external_url = ?')
+    .bind(user.id, url).first<{ id: string; state: string }>();
 
   if (existing) {
-    return c.json({ error: 'You already have this URL in your leads.', id: existing.id }, 409);
+    if (existing.state === 'new') {
+      // Already sitting in the active leads list — nothing to do
+      return c.json({ error: 'This URL is already in your active leads.', id: existing.id }, 409);
+    }
+    // Was converted or dismissed — restore it to 'new' with updated fields
+    await c.env.DB.prepare(
+      `UPDATE job_leads SET
+         state       = 'new',
+         title       = ?,
+         company     = ?,
+         location    = COALESCE(?, location),
+         salary_hint = COALESCE(?, salary_hint),
+         description = COALESCE(?, description),
+         score       = NULL,
+         score_reason = NULL,
+         converted_application_id = NULL,
+         fetched_at  = ?
+       WHERE id = ?`
+    ).bind(
+      body.title.trim(),
+      body.company.trim(),
+      body.location?.trim() ?? null,
+      body.salary_hint?.trim() ?? null,
+      body.description?.slice(0, 5000) ?? null,
+      nowIso(),
+      existing.id,
+    ).run();
+
+    const lead = await c.env.DB
+      .prepare('SELECT * FROM job_leads WHERE id = ?')
+      .bind(existing.id).first();
+    return c.json({ lead }, 200);
   }
 
   const id = newId();
