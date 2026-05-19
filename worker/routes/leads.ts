@@ -219,6 +219,17 @@ leadsRouter.post('/scrape', async (c) => {
   }
 
   // ── 2. Try OpenGraph / meta tags ─────────────────────────────────────────
+
+  // Job platforms whose og:site_name is the platform, NOT the employer
+  const PLATFORM_NAMES = [
+    'LinkedIn', 'Indeed', 'Glassdoor', 'Monster', 'ZipRecruiter', 'Dice',
+    'SimplyHired', 'CareerBuilder', 'Handshake', 'Built In', 'Wellfound',
+    'AngelList', 'Hired', 'Ladders', 'FlexJobs',
+  ];
+  const PLATFORM_SUFFIX_RE = new RegExp(
+    `\\s*[|\\-–]\\s*(${PLATFORM_NAMES.join('|')})\\s*$`, 'i'
+  );
+
   function metaContent(prop: string): string | null {
     const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))
             || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'));
@@ -229,21 +240,53 @@ leadsRouter.post('/scrape', async (c) => {
     return m ? m[1].trim() : null;
   }
 
-  const ogTitle   = metaContent('og:title');
   const ogSite    = metaContent('og:site_name');
   const ogDesc    = metaContent('og:description') || metaContent('description');
-  const pageTitle = titleTag() || ogTitle || '';
 
-  // Attempt to split "Job Title at Company" / "Job Title | Company" from page title
-  let title   = ogTitle || pageTitle;
-  let company = ogSite ?? null;
-  const atMatch   = pageTitle.match(/^(.+?)\s+(?:at|@)\s+(.+?)(?:\s*[\|–\-].*)?$/i);
-  const pipeMatch = pageTitle.match(/^(.+?)\s*[\|–\-]\s*(.+)$/);
-  if (atMatch) { title = atMatch[1].trim(); company = company ?? atMatch[2].trim(); }
-  else if (pipeMatch) { title = pipeMatch[1].trim(); company = company ?? pipeMatch[2].trim(); }
+  // Determine if og:site_name is a known job platform (not the actual employer)
+  const isPlatform = ogSite ? PLATFORM_NAMES.some(p => p.toLowerCase() === ogSite.toLowerCase()) : false;
+  let company: string | null = isPlatform ? null : (ogSite ?? null);
 
-  // If we got at least a title from OpenGraph, return now
-  if (title && title !== pageTitle.split(/[\|–\-]/)[0].trim() || ogTitle) {
+  // Prefer og:title; strip trailing "| Platform" suffix
+  const rawOgTitle = metaContent('og:title') || titleTag() || '';
+  const cleanTitle = rawOgTitle.replace(PLATFORM_SUFFIX_RE, '').trim();
+
+  let title = cleanTitle;
+
+  // Pattern 1 (LinkedIn style): "Company hiring [a|an] Role"
+  // e.g. "University of California Office of the President hiring DIRECTOR OF DIGITAL STRATEGY"
+  const hiringMatch = cleanTitle.match(/^(.+?)\s+(?:is\s+)?hiring\s+(?:a\s+|an\s+)?(.+)$/i);
+
+  // Pattern 2: "Role at Company"
+  const atMatch = cleanTitle.match(/^(.+?)\s+(?:at|@)\s+(.+)$/i);
+
+  // Pattern 3: "Role | Company" or "Role - Company" (only if not a platform suffix)
+  const pipeMatch = cleanTitle.match(/^(.+?)\s*[|\-–]\s*(.+)$/);
+
+  if (hiringMatch) {
+    // LinkedIn: "Company hiring Role"
+    company = hiringMatch[1].trim();
+    title   = hiringMatch[2].trim();
+  } else if (atMatch) {
+    // "Role at Company"
+    title   = atMatch[1].trim();
+    company = company ?? atMatch[2].trim();
+  } else if (pipeMatch && !isPlatform) {
+    const left  = pipeMatch[1].trim();
+    const right = pipeMatch[2].trim();
+    // If og:site_name matches the LEFT side → "Company | Role" (e.g. Greenhouse)
+    // Otherwise → "Role | Company" (most common format)
+    if (ogSite && left.toLowerCase().includes(ogSite.toLowerCase())) {
+      title   = right;
+      company = company ?? left;
+    } else {
+      title   = left;
+      company = company ?? right;
+    }
+  }
+
+  // If we got something useful, return now (skip AI)
+  if (title || company) {
     return c.json({ title: title || null, company, location: null, salary_hint: null, description: ogDesc ?? null, source: 'opengraph' });
   }
 
