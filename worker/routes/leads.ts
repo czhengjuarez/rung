@@ -274,7 +274,7 @@ leadsRouter.post('/scrape', async (c) => {
   } else if (pipeMatch && !isPlatform) {
     const left  = pipeMatch[1].trim();
     const right = pipeMatch[2].trim();
-    // If og:site_name matches the LEFT side → "Company | Role" (e.g. Greenhouse)
+    // If og:site_name matches the LEFT side → "Company - Role" (e.g. Greenhouse)
     // Otherwise → "Role | Company" (most common format)
     if (ogSite && left.toLowerCase().includes(ogSite.toLowerCase())) {
       title   = right;
@@ -285,14 +285,24 @@ leadsRouter.post('/scrape', async (c) => {
     }
   }
 
-  // If we got something useful, return now (skip AI)
-  if (title || company) {
-    return c.json({ title: title || null, company, location: null, salary_hint: null, description: ogDesc ?? null, source: 'opengraph' });
-  }
+  // ── 3. AI gap-fill ────────────────────────────────────────────────────────
+  // Always run AI to extract location, salary_hint, and description which
+  // meta tags almost never carry. Pass already-known title/company as context
+  // so the model focuses on the missing fields.
+  // Use the og:description + stripped body text as the source.
+  const pageText = [
+    ogDesc ?? '',
+    stripHtml(html).slice(0, 4000),
+  ].join('\n').trim().slice(0, 4500);
 
-  // ── 3. AI fallback ────────────────────────────────────────────────────────
-  const text = stripHtml(html).slice(0, 5000);
+  type AiExtracted = { title?: string; company?: string; location?: string; salary_hint?: string; description?: string };
+  let extracted: AiExtracted = {};
   try {
+    const knownContext = [
+      title   ? `Job title: ${title}`   : '',
+      company ? `Company: ${company}`   : '',
+    ].filter(Boolean).join('\n');
+
     const result = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       messages: [
         {
@@ -301,31 +311,36 @@ leadsRouter.post('/scrape', async (c) => {
         },
         {
           role: 'user',
-          content: `Extract the following fields from this job posting text. If a field is not found, use null.
-Return ONLY a JSON object with these keys: title, company, location, salary_hint (e.g. "$120k-$150k" or null), description (first 200 words of the job description or null).
+          content: `Extract job details from the text below. Return ONLY a JSON object with these keys (use null if not found):
+- title (job title)
+- company (employer name, NOT the job board platform)
+- location (city/state/region or "Remote")
+- salary_hint (e.g. "$120k–$150k" or null)
+- description (first 150 words of the job description, or null)
 
+${knownContext ? `Already known — only override if you find something more specific:\n${knownContext}\n` : ''}
 Text:
-${text}`,
+${pageText}`,
         },
       ],
-      max_tokens: 300,
+      max_tokens: 400,
     }) as { response?: string };
 
-    let extracted: { title?: string; company?: string; location?: string; salary_hint?: string; description?: string } = {};
     const raw = (result.response ?? '').trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) extracted = JSON.parse(jsonMatch[0]);
+  } catch { /* AI failed — fall through to best-effort */ }
 
-    return c.json({
-      title:       extracted.title       ?? title    ?? null,
-      company:     extracted.company     ?? company  ?? null,
-      location:    extracted.location    ?? null,
-      salary_hint: extracted.salary_hint ?? null,
-      description: extracted.description ?? null,
-      source:      'ai',
-    });
-  } catch {
-    // Return best-effort from meta tags even if AI failed
+  return c.json({
+    title:       title    || extracted.title       || null,
+    company:     company  || extracted.company     || null,
+    location:    extracted.location    || null,
+    salary_hint: extracted.salary_hint || null,
+    description: extracted.description || ogDesc   || null,
+    source:      title || company ? 'opengraph+ai' : 'ai',
+  });
+  // (dead code below kept to close the try/catch that was here)
+  {
     return c.json({ title: title || null, company, location: null, salary_hint: null, description: ogDesc ?? null, source: 'meta' });
   }
 });
