@@ -413,21 +413,56 @@ leadsRouter.post('/:id/dismiss', async (c) => {
   return c.json({ ok: true });
 });
 
+// Parse a free-text salary hint into numeric low/high + currency.
+// Handles: "$140k–$180k", "$120k-$150k", "$140,000–$180,000",
+//          "£80k-£100k", "€90k", "120000-150000", etc.
+function parseSalaryHint(hint: string | null): {
+  salary_low: number | null;
+  salary_high: number | null;
+  salary_currency: string;
+} {
+  if (!hint) return { salary_low: null, salary_high: null, salary_currency: 'USD' };
+
+  let currency = 'USD';
+  if (/£/.test(hint))              currency = 'GBP';
+  else if (/€/.test(hint))         currency = 'EUR';
+  else if (/CAD|C\$/.test(hint))   currency = 'CAD';
+  else if (/AUD|A\$/.test(hint))   currency = 'AUD';
+
+  // Extract values expressed as NNNk (e.g. 140k → 140000)
+  const kVals = [...hint.matchAll(/(\d+(?:\.\d+)?)\s*k/gi)]
+    .map(m => Math.round(parseFloat(m[1]) * 1000));
+
+  // Extract plain large numbers (5+ digits, e.g. 140,000 or 140000)
+  const plainVals = [...hint.matchAll(/(\d{2,3}(?:,\d{3})+|\d{5,})/g)]
+    .map(m => parseInt(m[1].replace(/,/g, ''), 10));
+
+  const all = [...new Set([...kVals, ...plainVals])].sort((a, b) => a - b);
+
+  if (all.length === 0) return { salary_low: null, salary_high: null, salary_currency: currency };
+  if (all.length === 1) return { salary_low: all[0], salary_high: all[0], salary_currency: currency };
+  return { salary_low: all[0], salary_high: all[all.length - 1], salary_currency: currency };
+}
+
 leadsRouter.post('/:id/convert', async (c) => {
   const user = c.get('user');
   const id = c.req.param('id');
   const lead = await c.env.DB
     .prepare('SELECT * FROM job_leads WHERE id = ? AND user_id = ?')
     .bind(id, user.id)
-    .first<{ id: string; title: string; company: string; location: string | null; work_mode: string | null; external_url: string; notes: string | null }>();
+    .first<{ id: string; title: string; company: string; location: string | null; work_mode: string | null; external_url: string; salary_hint: string | null; notes: string | null }>();
   if (!lead) return c.json({ error: 'not found' }, 404);
+
+  const { salary_low, salary_high, salary_currency } = parseSalaryHint(lead.salary_hint);
 
   const appId = newId();
   const notes = `Source: ${lead.external_url}${lead.notes ? `\n${lead.notes}` : ''}`;
   await c.env.DB.prepare(
-    `INSERT INTO applications (id, user_id, company, role, location, work_mode, status, notes, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'Saved', ?, ?)`
-  ).bind(appId, user.id, lead.company, lead.title, lead.location, lead.work_mode, notes, nowIso()).run();
+    `INSERT INTO applications
+       (id, user_id, company, role, location, work_mode, salary_low, salary_high, salary_currency, status, notes, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Saved', ?, ?)`
+  ).bind(appId, user.id, lead.company, lead.title, lead.location, lead.work_mode,
+         salary_low, salary_high, salary_currency, notes, nowIso()).run();
 
   await c.env.DB
     .prepare("UPDATE job_leads SET state = 'converted', converted_application_id = ? WHERE id = ?")
