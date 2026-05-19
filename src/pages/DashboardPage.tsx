@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { badgeClass, buttonClass } from '@ops-forward/keel';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, ExternalLink, GripVertical, Plus, Search, Star, Upload, Users } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -96,6 +96,14 @@ function SortableRow({ app, draggable, onOpen, onToggleStar }: SortableRowProps)
         <button className={`rung-star ${app.starred ? 'on' : ''}`} aria-label="Star">
           <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
         </button>
+      </td>
+      <td onClick={e => e.stopPropagation()} style={{ width: 28, padding: '0 4px' }}>
+        {app.external_url && (
+          <a href={app.external_url} target="_blank" rel="noopener noreferrer"
+             className="rung-icon-btn" title="Open job posting" style={{ display: 'inline-flex' }}>
+            <ExternalLink size={13} />
+          </a>
+        )}
       </td>
       <td style={{ color: app.contact_count > 0 ? 'var(--rung-text-muted)' : 'var(--rung-text-faint)', fontSize: 12 }}>
         {app.contact_count > 0 ? (
@@ -350,6 +358,7 @@ export default function DashboardPage() {
                           <GripVertical size={13} style={{ opacity: draggable ? 0.4 : 0.15 }} />
                         </th>
                         <th></th>
+                        <th></th>
                         <th title="Linked contacts"><Users size={13} /></th>
                         {([
                           ['company',      'Company'],
@@ -385,13 +394,21 @@ export default function DashboardPage() {
                     <div className="rung-card" key={app.id} onClick={() => setEditing(app)}>
                       <div className="row">
                         <span className="company">{app.company}</span>
-                        <button
-                          className={`rung-star ${app.starred ? 'on' : ''}`}
-                          aria-label="Star"
-                          onClick={(e) => { e.stopPropagation(); toggleStar(app); }}
-                        >
-                          <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
+                          {app.external_url && (
+                            <a href={app.external_url} target="_blank" rel="noopener noreferrer"
+                               className="rung-icon-btn" title="Open job posting">
+                              <ExternalLink size={14} />
+                            </a>
+                          )}
+                          <button
+                            className={`rung-star ${app.starred ? 'on' : ''}`}
+                            aria-label="Star"
+                            onClick={() => toggleStar(app)}
+                          >
+                            <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
                       </div>
                       <div className="meta">{app.role || '—'} · {app.location || '—'}</div>
                       <div className="row">

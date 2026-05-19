@@ -19,6 +19,7 @@ const ALLOWED_FIELDS = [
   'notes',
   'starred',
   'resume_id',
+  'external_url',
 ] as const;
 
 type AllowedField = (typeof ALLOWED_FIELDS)[number];

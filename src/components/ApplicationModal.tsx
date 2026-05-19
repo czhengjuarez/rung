@@ -30,6 +30,7 @@ interface State {
   applied_at: string;
   notes: string;
   resume_id: string;
+  external_url: string;
 }
 
 function toState(a: Application | null): State {
@@ -47,6 +48,7 @@ function toState(a: Application | null): State {
     applied_at: a?.applied_at ? a.applied_at.slice(0, 10) : '',
     notes: a?.notes ?? '',
     resume_id: a?.resume_id ?? '',
+    external_url: a?.external_url ?? '',
   };
 }
 
@@ -139,6 +141,7 @@ export function ApplicationModal({
         applied_at: s.applied_at || null,
         notes: s.notes || null,
         resume_id: s.resume_id || null,
+        external_url: s.external_url || null,
       };
       if (application) {
         await api.updateApplication(application.id, body);
@@ -248,6 +251,20 @@ export function ApplicationModal({
                 Upload resumes on the Resume page to track which version you sent.
               </p>
             )}
+          </div>
+          <div>
+            <label className={labelClass()} htmlFor="external_url">Job posting URL</label>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input id="external_url" className={inputClass()} type="url" placeholder="https://…"
+                     value={s.external_url} onChange={(e) => update({ external_url: e.target.value })}
+                     style={{ flex: 1 }} />
+              {s.external_url && (
+                <a href={s.external_url} target="_blank" rel="noopener noreferrer"
+                   className="rung-icon-btn" title="Open posting" style={{ flexShrink: 0 }}>
+                  <ExternalLink size={15} />
+                </a>
+              )}
+            </div>
           </div>
           <div>
             <label className={labelClass()} htmlFor="notes">Notes</label>

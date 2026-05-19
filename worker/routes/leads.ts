@@ -487,13 +487,13 @@ leadsRouter.post('/:id/convert', async (c) => {
   const { salary_low, salary_high, salary_currency } = parseSalaryHint(lead.salary_hint);
 
   const appId = newId();
-  const notes = `Source: ${lead.external_url}${lead.notes ? `\n${lead.notes}` : ''}`;
+  const notes = lead.notes || null;
   await c.env.DB.prepare(
     `INSERT INTO applications
-       (id, user_id, company, role, location, work_mode, salary_low, salary_high, salary_currency, status, notes, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Saved', ?, ?)`
+       (id, user_id, company, role, location, work_mode, salary_low, salary_high, salary_currency, status, notes, external_url, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Saved', ?, ?, ?)`
   ).bind(appId, user.id, lead.company, lead.title, lead.location, lead.work_mode,
-         salary_low, salary_high, salary_currency, notes, nowIso()).run();
+         salary_low, salary_high, salary_currency, notes, lead.external_url, nowIso()).run();
 
   await c.env.DB
     .prepare("UPDATE job_leads SET state = 'converted', converted_application_id = ? WHERE id = ?")

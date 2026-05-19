@@ -78,6 +78,7 @@ export interface Application {
   updated_at: string;
   contact_count: number;
   rank: number | null;
+  external_url: string | null;
 }
 
 export interface PublicProfile {
