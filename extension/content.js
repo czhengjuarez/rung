@@ -19,62 +19,75 @@ function attr(selector, attribute) {
 
 // ── LinkedIn ─────────────────────────────────────────────────────────────────
 // Handles both /jobs/view/ID and /jobs/search/?currentJobId=ID layouts.
+// LinkedIn's class names are utility classes (t-24, tvm__text etc.) and
+// change frequently — we try many patterns and use structural fallbacks.
 
 function scrapeLinkedIn() {
+  // ── Canonical URL (do this first so we always return a clean URL) ──
+  let jobUrl = window.location.href;
+  const jobIdFromSearch = new URLSearchParams(window.location.search).get('currentJobId');
+  if (jobIdFromSearch) {
+    jobUrl = `https://www.linkedin.com/jobs/view/${jobIdFromSearch}/`;
+  }
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical?.href) jobUrl = canonical.href;
+
   // ── Title ──
-  const title = text(
-    // Search panel (SPA) — the side-panel heading
-    '.jobs-search__job-details h2.t-24',
-    '.jobs-search__job-details .job-details-jobs-unified-top-card__job-title',
-    '.job-details-jobs-unified-top-card__job-title h1',
-    // Direct job view (/jobs/view/)
-    'h1.job-details-jobs-unified-top-card__job-title',
-    'h1[class*="top-card__title"]',
-    'h1.topcard__title',
-    // Fallback: any prominent h1/h2 in the detail pane
-    '.jobs-search__right-rail h1',
-    '.jobs-search__right-rail h2',
-  );
+  // The job title is always the primary h1 on the page.
+  const title =
+    text(
+      'h1.job-details-jobs-unified-top-card__job-title',
+      'h1[class*="job-title"]',
+      'h1[class*="top-card__title"]',
+      'h1.topcard__title',
+      '.jobs-search__job-details h1',
+      '.jobs-search__job-details h2.t-24',
+    ) ||
+    // Last-resort: first visible h1 on the page
+    (() => {
+      const h1 = document.querySelector('h1');
+      return h1?.innerText.trim() || null;
+    })();
 
   // ── Company ──
-  const company = text(
-    '.jobs-search__job-details .job-details-jobs-unified-top-card__company-name a',
-    '.jobs-search__job-details .job-details-jobs-unified-top-card__company-name',
-    '.job-details-jobs-unified-top-card__company-name a',
-    'a[class*="company-name"]',
-    '.topcard__org-name-link',
-    '.job-details-jobs-unified-top-card__primary-description-without-tagline a',
-  );
+  // LinkedIn always links to /company/SLUG — that anchor text is the company name.
+  const companyFromLink = (() => {
+    const anchors = [...document.querySelectorAll('a[href*="linkedin.com/company/"], a[href^="/company/"]')];
+    // Pick the first visible one that has text (skip logo links)
+    for (const a of anchors) {
+      const t = a.innerText.trim();
+      if (t && t.length > 1 && t.length < 100) return t;
+    }
+    return null;
+  })();
+  const company =
+    companyFromLink ||
+    text(
+      '.job-details-jobs-unified-top-card__company-name a',
+      '.job-details-jobs-unified-top-card__company-name',
+      'a[class*="company-name"]',
+      '.topcard__org-name-link',
+    );
 
   // ── Location ──
   const location = text(
-    '.jobs-search__job-details .job-details-jobs-unified-top-card__bullet',
     '.job-details-jobs-unified-top-card__bullet',
     '.jobs-unified-top-card__bullet',
+    '.tvm__text--positive',
+    '.jobs-search__job-details .tvm__text',
     '.topcard__flavor--bullet',
-    '.job-details-jobs-unified-top-card__workplace-type',
+    '[class*="primary-description"] span:first-child',
   );
 
   // ── Description ──
   const description = text(
-    '.jobs-search__job-details .jobs-description__content',
     '.jobs-description__content',
+    '.jobs-search__job-details .jobs-description__content',
     '#job-details',
     '.jobs-box__html-content',
   );
 
-  // ── Canonical URL ──
-  // On /jobs/search/?currentJobId=ID, build the canonical /jobs/view/ID URL
-  let url = location?.href ?? window.location.href;
-  const jobIdFromSearch = new URLSearchParams(window.location.search).get('currentJobId');
-  if (jobIdFromSearch) {
-    url = `https://www.linkedin.com/jobs/view/${jobIdFromSearch}/`;
-  }
-  // Also try <link rel="canonical">
-  const canonical = document.querySelector('link[rel="canonical"]');
-  if (canonical?.href) url = canonical.href;
-
-  return { title, company, location, description, url };
+  return { title, company, location, description, url: jobUrl };
 }
 
 // ── Indeed ───────────────────────────────────────────────────────────────────

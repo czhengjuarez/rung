@@ -73,12 +73,46 @@ async function doAutofill({ silent = false } = {}) {
   iconNormal.classList.add('hidden');
   iconSpin.classList.remove('hidden');
 
+  // ── Step 1: try content script (in-page DOM scrape) ──────────────────────
   const data = await scrapeTab();
   const hasData = data.title || data.company;
 
   if (hasData) {
     fillForm(data, { overwriteEmpty: true });
     if (!silent) showAutofillStatus('✓ Fields filled from page');
+    btn.disabled = false;
+    iconNormal.classList.remove('hidden');
+    iconSpin.classList.add('hidden');
+    return data;
+  }
+
+  // ── Step 2: server-side scrape fallback ───────────────────────────────────
+  // Content script couldn't read the DOM (JS-rendered content, permission
+  // issues, etc.) — send the URL to Rung's backend which fetches + parses
+  // via OpenGraph / JSON-LD / AI.
+  const urlToScrape = data.url || (await getCurrentTabUrl());
+  if (urlToScrape) {
+    if (!silent) showAutofillStatus('Reading via Rung…');
+    try {
+      const result = await api('/api/leads/scrape', {
+        method: 'POST',
+        body: JSON.stringify({ url: urlToScrape }),
+      });
+      const hasServerData = result.title || result.company;
+      if (hasServerData) {
+        fillForm({
+          title:    result.title    || '',
+          company:  result.company  || '',
+          location: result.location || '',
+          url:      urlToScrape,
+        }, { overwriteEmpty: true });
+        if (!silent) showAutofillStatus('✓ Fields filled from page');
+      } else {
+        if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+      }
+    } catch {
+      if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+    }
   } else {
     if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
   }
@@ -86,8 +120,12 @@ async function doAutofill({ silent = false } = {}) {
   btn.disabled = false;
   iconNormal.classList.remove('hidden');
   iconSpin.classList.add('hidden');
-
   return data;
+}
+
+async function getCurrentTabUrl() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab?.url || '';
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
