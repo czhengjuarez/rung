@@ -16,6 +16,8 @@ The core of Rung. Add every company you're interested in and move them through y
 ### Job Leads
 Stop manually hunting for jobs. Add job board sources — Greenhouse, Lever, Workable, or any RSS feed — and Rung fetches new listings automatically every morning. It then scores each one using AI, rating how well it matches your criteria (title keywords, seniority, work mode, location, salary range). New leads are sorted by score so the best ones are always at the top. You can also score any lead on demand, and convert interesting ones directly into tracked applications with one click.
 
+You can also **clip any job posting** directly into your leads list — either by pasting a URL in the app (Leads → Clip URL) or using the browser extension (see below). Rung scrapes the title, company, location, and salary from the page automatically.
+
 ### Contacts & networking
 Keep a CRM of the people who matter to your search — recruiters, hiring managers, connections inside companies. Link contacts to specific applications with a relationship label (e.g. "Referral", "Recruiter") so you always know who you know at each company.
 
@@ -24,6 +26,14 @@ Upload multiple resumes (PDF or text). Rung stores them in R2 and lets you label
 
 ### Interview Prep
 A built-in question bank. Rung ships with 22 well-sourced questions (from LinkedIn, Glassdoor, Indeed, McKinsey, HBR) covering behavioral, leadership, situational, technical, and culture-fit categories. You can add your own private questions too. Write out your answer to any question, then hit "Practice" to get AI coaching: a score out of 10, feedback on your STAR structure, strengths, areas to improve, and a suggested rewrite.
+
+### Browser extension
+
+A Chrome/Edge extension lets you clip any job posting to your leads list without leaving the page. It scrapes the title, company, location, and salary directly from the DOM (LinkedIn, Indeed, Greenhouse, Lever, Workday, and generic fallback), then falls back to a server-side scrape if the content script can't read the page.
+
+The extension uses your existing Rung session cookie — no separate login required. If you're not logged in, it opens the Rung web app so you can sign in first.
+
+See [`extension/`](#extension) in the project layout for the files. Load it in Chrome via **Extensions → Load unpacked → select the `extension/` folder**.
 
 ### Public profile
 Optional. Enable a public profile at `/u/your-slug` to share a clean page with your headline and links — useful for networking or putting in your email signature. Your application data is never exposed.
@@ -202,6 +212,15 @@ Migrations live in `./migrations/` and are applied sequentially with `wrangler d
 ```
 rung/
 ├── wrangler.toml            Cloudflare Worker config (D1, R2, AI, cron)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       GitHub Actions CI/CD (auto-deploy on push to main)
+├── extension/               Chrome/Edge browser extension (Manifest V3)
+│   ├── manifest.json        Extension metadata, permissions, content script config
+│   ├── popup.html           Extension popup UI
+│   ├── popup.js             Popup logic — auth check, scrape, clip lead
+│   ├── popup.css            Popup styles
+│   └── content.js           Content script — DOM scraper for LinkedIn, Indeed, etc.
 ├── public/
 │   ├── favicon.svg          Browser tab icon (32×32, ladder on gradient)
 │   ├── icon.svg             PWA home screen icon (512×512)
@@ -350,6 +369,19 @@ Open http://localhost:5173. The Vite proxy handles CORS so the two servers feel 
 ---
 
 ## Deploying
+
+### Automatic (GitHub Actions)
+
+Pushing to `main` triggers the included workflow at `.github/workflows/deploy.yml`, which installs dependencies, builds, and deploys to Cloudflare Workers automatically. A fork guard (`if: github.repository == 'czhengjuarez/rung'`) ensures the workflow only runs on the upstream repo — forks skip it cleanly with no red badge.
+
+To enable auto-deploy on your own fork:
+1. Add two secrets to your GitHub repo (**Settings → Secrets → Actions**):
+   - `CLOUDFLARE_API_TOKEN` — a Cloudflare API token with Workers edit permission
+   - `CLOUDFLARE_ACCOUNT_ID` — your Cloudflare account ID
+2. Update the fork guard in `.github/workflows/deploy.yml` to match your repo name
+3. Push to `main` — the workflow takes care of the rest
+
+### Manual
 
 ```bash
 npm run cf:deploy
