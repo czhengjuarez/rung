@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { badgeClass, buttonClass } from '@ops-forward/keel';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, ListOrdered, Plus, Search, Star, Upload, Users } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -190,8 +190,10 @@ export default function DashboardPage() {
   const cycleSort = (key: keyof Application) => {
     if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
     else if (sortDir === 'asc') setSortDir('desc');
-    else { setSortKey(null); }
+    else { setSortKey(null); refresh(); }
   };
+
+  const returnToCustomOrder = () => { setSortKey(null); setSortDir('asc'); refresh(); };
 
   const SortIcon = ({ col }: { col: keyof Application }) => {
     if (sortKey !== col) return <ArrowUpDown size={12} style={{ opacity: 0.35 }} />;
@@ -326,6 +328,15 @@ export default function DashboardPage() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {sortKey !== null && (
+              <button
+                className={buttonClass({ variant: 'ghost' })}
+                onClick={returnToCustomOrder}
+                title="Return to your custom drag order"
+              >
+                <ListOrdered size={14} /> Custom order
+              </button>
+            )}
           </div>
 
           {filtered.length === 0 ? (
