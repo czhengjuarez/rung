@@ -44,11 +44,50 @@ async function scrapeTab() {
 
 // ── Populate form ─────────────────────────────────────────────────────────────
 
-function fillForm(data) {
-  document.getElementById('f-title').value   = data.title    || '';
-  document.getElementById('f-company').value = data.company  || '';
-  document.getElementById('f-location').value = data.location || '';
-  document.getElementById('f-url').value     = data.url      || '';
+let lastScrapedUrl = '';
+
+function fillForm(data, { overwriteEmpty = false } = {}) {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (val && (!el.value || overwriteEmpty)) el.value = val;
+  };
+  set('f-title',   data.title);
+  set('f-company', data.company);
+  set('f-location', data.location);
+  if (data.url) document.getElementById('f-url').value = data.url;
+  lastScrapedUrl = data.url || '';
+}
+
+function showAutofillStatus(msg, isError = false) {
+  const el = document.getElementById('autofill-status');
+  el.textContent = msg;
+  el.className = `autofill-status${isError ? ' error' : ' ok'}`;
+}
+
+async function doAutofill({ silent = false } = {}) {
+  const iconNormal = document.getElementById('icon-autofill');
+  const iconSpin   = document.getElementById('icon-autofill-spin');
+  const btn        = document.getElementById('btn-autofill');
+
+  btn.disabled = true;
+  iconNormal.classList.add('hidden');
+  iconSpin.classList.remove('hidden');
+
+  const data = await scrapeTab();
+  const hasData = data.title || data.company;
+
+  if (hasData) {
+    fillForm(data, { overwriteEmpty: true });
+    if (!silent) showAutofillStatus('✓ Fields filled from page');
+  } else {
+    if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+  }
+
+  btn.disabled = false;
+  iconNormal.classList.remove('hidden');
+  iconSpin.classList.add('hidden');
+
+  return data;
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -74,10 +113,16 @@ async function init() {
     return;
   }
 
-  // Scrape current page
-  const data = await scrapeTab();
-  fillForm(data);
   show('view-form');
+
+  // Scrape current page silently on open
+  const data = await doAutofill({ silent: true });
+
+  // Pre-fill URL even if scrape got no title/company
+  if (data.url) document.getElementById('f-url').value = data.url;
+
+  // Wire auto-fill button
+  document.getElementById('btn-autofill').addEventListener('click', () => doAutofill());
 
   // ── Form submit ────────────────────────────────────────────────────────────
   document.getElementById('clip-form').addEventListener('submit', async (e) => {
@@ -97,7 +142,7 @@ async function init() {
       company:     fd.get('company')?.toString().trim()    || '',
       location:    fd.get('location')?.toString().trim()   || '',
       salary_hint: fd.get('salary_hint')?.toString().trim()|| '',
-      external_url: fd.get('url')?.toString().trim()       || data.url,
+      external_url: fd.get('url')?.toString().trim()       || lastScrapedUrl,
       description: data.description || '',
     };
 

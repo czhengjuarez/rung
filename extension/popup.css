@@ -57,14 +57,36 @@ body {
   align-items: center;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
+  gap: 8px;
 }
-.header-hint {
-  font-size: 11px;
-  color: var(--text-secondary);
+
+.btn-autofill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 9px;
+  font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
 }
+.btn-autofill:hover { border-color: var(--pink); color: var(--pink); }
+.btn-autofill:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.autofill-status {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: -4px;
+}
+.autofill-status.ok    { color: #16a34a; background: #f0fdf4; }
+.autofill-status.error { color: #dc2626; background: #fef2f2; }
+.autofill-status.hidden { display: none; }
 
 /* ── Login view ── */
 .login-msg {
