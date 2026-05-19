@@ -54,7 +54,7 @@ api.route('/profile', profileRouter);
 api.route('/public', publicRouter);
 
 // Push: vapid-public-key is unauthenticated; subscribe + preferences require auth
-api.get('/push/vapid-public-key', (c) => pushRouter.fetch(c.req.raw, c.env, c.executionCtx));
+api.get('/push/vapid-public-key', (c) => c.json({ publicKey: c.env.VAPID_PUBLIC_KEY }));
 api.use('/push/*', requireUser);
 api.route('/push', pushRouter);
 
