@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { badgeClass, buttonClass } from '@ops-forward/keel';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, ListOrdered, Plus, Search, Star, Upload, Users } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronUp, Download, GripVertical, Plus, Search, Star, Upload, Users } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -68,29 +68,29 @@ function lastTouch(app: Application): string {
 
 interface SortableRowProps {
   app: Application;
-  isDragMode: boolean;
+  draggable: boolean;
   onOpen: () => void;
   onToggleStar: () => void;
 }
 
-function SortableRow({ app, isDragMode, onOpen, onToggleStar }: SortableRowProps) {
+function SortableRow({ app, draggable, onOpen, onToggleStar }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: app.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    cursor: isDragMode ? 'default' : undefined,
     zIndex: isDragging ? 1 : undefined,
     position: isDragging ? ('relative' as const) : undefined,
   };
   return (
     <tr ref={setNodeRef} style={style} onClick={onOpen}>
       <td
-        className={`rung-drag-handle${isDragMode ? ' active' : ''}`}
+        className={`rung-drag-handle${draggable ? ' active' : ''}`}
+        title={draggable ? 'Drag to reorder' : 'Clear search / filter to reorder'}
         onClick={e => e.stopPropagation()}
-        {...(isDragMode ? { ...attributes, ...listeners } : {})}
+        {...(draggable ? { ...attributes, ...listeners } : {})}
       >
-        {isDragMode && <GripVertical size={14} />}
+        <GripVertical size={14} />
       </td>
       <td onClick={(e) => { e.stopPropagation(); onToggleStar(); }}>
         <button className={`rung-star ${app.starred ? 'on' : ''}`} aria-label="Star">
@@ -138,26 +138,13 @@ export default function DashboardPage() {
   const refresh = () => api.listApplications().then((r) => setApps(r.applications));
   useEffect(() => { refresh(); }, []);
 
-  const isDragMode = sortKey === null && query === '' && statusFilter === 'all';
+  // Drag requires the full list — disabled when search or status filter is active
+  const draggable = query === '' && statusFilter === 'all';
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = apps.findIndex(a => a.id === active.id);
-    const newIndex = apps.findIndex(a => a.id === over.id);
-    const reordered = arrayMove(apps, oldIndex, newIndex);
-    setApps(reordered);
-    try {
-      await api.reorderApplications(reordered.map(a => a.id));
-    } catch {
-      refresh();
-    }
-  };
 
   const downloadCsv = async () => {
     const res = await fetch('/api/applications/export', { credentials: 'include' });
@@ -190,10 +177,8 @@ export default function DashboardPage() {
   const cycleSort = (key: keyof Application) => {
     if (sortKey !== key) { setSortKey(key); setSortDir('asc'); }
     else if (sortDir === 'asc') setSortDir('desc');
-    else { setSortKey(null); refresh(); }
+    else { setSortKey(null); setSortDir('asc'); }
   };
-
-  const returnToCustomOrder = () => { setSortKey(null); setSortDir('asc'); refresh(); };
 
   const SortIcon = ({ col }: { col: keyof Application }) => {
     if (sortKey !== col) return <ArrowUpDown size={12} style={{ opacity: 0.35 }} />;
@@ -219,6 +204,24 @@ export default function DashboardPage() {
     }
     return rows;
   }, [apps, query, statusFilter, sortKey, sortDir]);
+
+  // Drag commits the current visible order as the new rank and clears any column sort.
+  // Defined after `filtered` so it closes over the current sorted/filtered list.
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = filtered.findIndex(a => a.id === active.id);
+    const newIndex = filtered.findIndex(a => a.id === over.id);
+    const reordered = arrayMove(filtered, oldIndex, newIndex);
+    setApps(reordered);   // filtered === apps when draggable (no search/filter)
+    setSortKey(null);     // drag wins — clear column sort
+    setSortDir('asc');
+    try {
+      await api.reorderApplications(reordered.map(a => a.id));
+    } catch {
+      refresh();
+    }
+  };
 
   const toggleStar = async (app: Application) => {
     const next = app.starred ? 0 : 1;
@@ -328,15 +331,6 @@ export default function DashboardPage() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            {sortKey !== null && (
-              <button
-                className={buttonClass({ variant: 'ghost' })}
-                onClick={returnToCustomOrder}
-                title="Return to your custom drag order"
-              >
-                <ListOrdered size={14} /> Custom order
-              </button>
-            )}
           </div>
 
           {filtered.length === 0 ? (
@@ -352,8 +346,8 @@ export default function DashboardPage() {
                   <table className="rung-table">
                     <thead>
                       <tr>
-                        <th className="rung-th-grip" title={isDragMode ? 'Drag to reorder' : 'Clear filters to reorder'}>
-                          {isDragMode && <GripVertical size={13} style={{ opacity: 0.4 }} />}
+                        <th className="rung-th-grip" title={draggable ? 'Drag to reorder' : 'Clear search / filter to reorder'}>
+                          <GripVertical size={13} style={{ opacity: draggable ? 0.4 : 0.15 }} />
                         </th>
                         <th></th>
                         <th title="Linked contacts"><Users size={13} /></th>
@@ -377,7 +371,7 @@ export default function DashboardPage() {
                         <SortableRow
                           key={app.id}
                           app={app}
-                          isDragMode={isDragMode}
+                          draggable={draggable}
                           onOpen={() => setEditing(app)}
                           onToggleStar={() => toggleStar(app)}
                         />
