@@ -356,7 +356,7 @@ interface RunSourceResult { source_id: string; label: string; fetched: number; i
 // ── Clip-from-URL form ────────────────────────────────────────────────────────
 type ClipField = { title: string; company: string; location: string; salary_hint: string; external_url: string; };
 
-function ClipForm({ onAdded, onClose }: { onAdded: (lead: JobLead) => void; onClose: () => void }) {
+function ClipForm({ onAdded, onClose }: { onAdded: () => void; onClose: () => void }) {
   const [url, setUrl]           = useState('');
   const [scraping, setScraping] = useState(false);
   const [scrapeErr, setScrapeErr] = useState('');
@@ -392,7 +392,7 @@ function ClipForm({ onAdded, onClose }: { onAdded: (lead: JobLead) => void; onCl
     }
     setSaving(true); setSaveErr('');
     try {
-      const res = await api.clipLead({
+      await api.clipLead({
         title:        fields.title.trim(),
         company:      fields.company.trim(),
         location:     fields.location.trim()    || undefined,
@@ -400,7 +400,7 @@ function ClipForm({ onAdded, onClose }: { onAdded: (lead: JobLead) => void; onCl
         external_url: fields.external_url.trim() || url.trim(),
         description:  undefined,
       });
-      onAdded(res.lead as JobLead);
+      onAdded();
       onClose();
     } catch (e: unknown) {
       setSaveErr((e as Error).message || 'Could not save lead.');
@@ -534,7 +534,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
 
       {clipOpen && (
         <ClipForm
-          onAdded={lead => { setLeads(prev => [lead, ...prev]); }}
+          onAdded={() => { refresh(); setClipOpen(false); }}
           onClose={() => setClipOpen(false)}
         />
       )}
