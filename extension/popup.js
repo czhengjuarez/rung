@@ -51,9 +51,10 @@ function fillForm(data, { overwriteEmpty = false } = {}) {
     const el = document.getElementById(id);
     if (val && (!el.value || overwriteEmpty)) el.value = val;
   };
-  set('f-title',   data.title);
-  set('f-company', data.company);
+  set('f-title',    data.title);
+  set('f-company',  data.company);
   set('f-location', data.location);
+  set('f-salary',   data.salary_hint);
   if (data.url) document.getElementById('f-url').value = data.url;
   lastScrapedUrl = data.url || '';
 }
@@ -101,10 +102,11 @@ async function doAutofill({ silent = false } = {}) {
       const hasServerData = result.title || result.company;
       if (hasServerData) {
         fillForm({
-          title:    result.title    || '',
-          company:  result.company  || '',
-          location: result.location || '',
-          url:      urlToScrape,
+          title:       result.title       || '',
+          company:     result.company     || '',
+          location:    result.location    || '',
+          salary_hint: result.salary_hint || '',
+          url:         urlToScrape,
         }, { overwriteEmpty: true });
         if (!silent) showAutofillStatus('✓ Fields filled from page');
       } else {

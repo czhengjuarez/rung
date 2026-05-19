@@ -79,6 +79,29 @@ function scrapeLinkedIn() {
     '[class*="primary-description"] span:first-child',
   );
 
+  // ── Salary ──
+  // LinkedIn shows salary in a "compensation" insight chip when available.
+  // The text contains $ so we can look for it generically.
+  const salary_hint = (() => {
+    const candidates = [
+      '.job-details-jobs-unified-top-card__job-insight',
+      '[class*="compensation"]',
+      '[class*="salary"]',
+      '[class*="pay-range"]',
+    ];
+    for (const sel of candidates) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const t = el.innerText.trim();
+        if (/\$|£|€/.test(t)) return t.split('\n')[0].trim();
+      }
+    }
+    // Scan all visible text nodes for a salary pattern near the top of the page
+    const allText = document.body?.innerText || '';
+    const m = allText.match(/(?:\$|£|€)\s*\d[\d,]*(?:k|K)?(?:\s*[-–—]\s*(?:\$|£|€)?\s*\d[\d,]*(?:k|K)?)?(?:\s*(?:\/yr|\/year|per year|annually))?/);
+    return m ? m[0].trim() : null;
+  })();
+
   // ── Description ──
   const description = text(
     '.jobs-description__content',
@@ -87,7 +110,7 @@ function scrapeLinkedIn() {
     '.jobs-box__html-content',
   );
 
-  return { title, company, location, description, url: jobUrl };
+  return { title, company, location, salary_hint, description, url: jobUrl };
 }
 
 // ── Indeed ───────────────────────────────────────────────────────────────────
@@ -199,6 +222,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       title:       data.title       || '',
       company:     data.company     || '',
       location:    data.location    || '',
+      salary_hint: data.salary_hint || '',
       description: (data.description || '').slice(0, 3000),
       url:         data.url || window.location.href,
     });
