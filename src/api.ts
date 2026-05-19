@@ -88,6 +88,11 @@ export const api = {
     request<{ source: LeadSource }>(`/api/leads/sources/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteSource: (id: string) => request<void>(`/api/leads/sources/${id}`, { method: 'DELETE' }),
 
+  scrapeLeadUrl: (url: string) =>
+    request<{ title: string | null; company: string | null; location: string | null; salary_hint: string | null; description: string | null; source: string }>('/api/leads/scrape', { method: 'POST', body: JSON.stringify({ url }) }),
+  clipLead: (body: { title: string; company: string; external_url: string; location?: string; salary_hint?: string; description?: string }) =>
+    request<{ lead: unknown }>('/api/leads/clip', { method: 'POST', body: JSON.stringify(body) }),
+
   listLeads: (state: string = 'new') =>
     request<{ leads: JobLead[] }>(`/api/leads?state=${encodeURIComponent(state)}`),
   scoreLead: (id: string) => request<{ score: number; score_reason: string }>(`/api/leads/${id}/score`, { method: 'POST' }),

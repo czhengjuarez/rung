@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { buttonClass, inputClass, labelClass, selectClass } from '@ops-forward/keel';
 import {
-  ChevronDown, ChevronUp, ExternalLink, Loader2, PlayCircle, Plus, RefreshCw, Trash2, X
+  Check, ChevronDown, ChevronUp, ExternalLink, Link, Loader2, PlayCircle, Plus, RefreshCw, Trash2, X
 } from 'lucide-react';
 import { api } from '../api';
 import type { JobLead, LeadCriteria, LeadSource } from '../types';
@@ -353,6 +353,122 @@ function SourcesManager() {
 
 interface RunSourceResult { source_id: string; label: string; fetched: number; inserted: number; error: string | null }
 
+// ── Clip-from-URL form ────────────────────────────────────────────────────────
+type ClipField = { title: string; company: string; location: string; salary_hint: string; external_url: string; };
+
+function ClipForm({ onAdded, onClose }: { onAdded: (lead: JobLead) => void; onClose: () => void }) {
+  const [url, setUrl]           = useState('');
+  const [scraping, setScraping] = useState(false);
+  const [scrapeErr, setScrapeErr] = useState('');
+  const [fields, setFields]     = useState<ClipField | null>(null);
+  const [saving, setSaving]     = useState(false);
+  const [saveErr, setSaveErr]   = useState('');
+  const urlRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { urlRef.current?.focus(); }, []);
+
+  const scrape = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setScraping(true); setScrapeErr(''); setFields(null);
+    try {
+      const res = await api.scrapeLeadUrl(trimmed);
+      setFields({
+        title:        res.title       ?? '',
+        company:      res.company     ?? '',
+        location:     res.location    ?? '',
+        salary_hint:  res.salary_hint ?? '',
+        external_url: trimmed,
+      });
+    } catch (e: unknown) {
+      setScrapeErr((e as Error).message || 'Could not scrape that URL.');
+    } finally { setScraping(false); }
+  };
+
+  const save = async () => {
+    if (!fields) return;
+    if (!fields.title.trim() || !fields.company.trim()) {
+      setSaveErr('Title and company are required.'); return;
+    }
+    setSaving(true); setSaveErr('');
+    try {
+      const res = await api.clipLead({
+        title:        fields.title.trim(),
+        company:      fields.company.trim(),
+        location:     fields.location.trim()    || undefined,
+        salary_hint:  fields.salary_hint.trim() || undefined,
+        external_url: fields.external_url.trim() || url.trim(),
+        description:  undefined,
+      });
+      onAdded(res.lead as JobLead);
+      onClose();
+    } catch (e: unknown) {
+      setSaveErr((e as Error).message || 'Could not save lead.');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="rung-clip-form">
+      {/* URL row */}
+      <div className="rung-clip-url-row">
+        <input
+          ref={urlRef}
+          className={inputClass()}
+          placeholder="Paste job posting URL…"
+          value={url}
+          onChange={e => { setUrl(e.target.value); setFields(null); setScrapeErr(''); }}
+          onKeyDown={e => e.key === 'Enter' && scrape()}
+        />
+        <button className={buttonClass({ variant: 'primary' })} onClick={scrape} disabled={scraping || !url.trim()}>
+          {scraping ? <Loader2 size={13} className="spin" /> : <Link size={13} />}
+          {scraping ? 'Scraping…' : 'Scrape'}
+        </button>
+        <button className={buttonClass({ variant: 'ghost' })} onClick={onClose}><X size={14} /></button>
+      </div>
+
+      {scrapeErr && <p className="rung-clip-err">{scrapeErr}</p>}
+
+      {/* Editable fields appear after scrape */}
+      {fields && (
+        <div className="rung-clip-fields">
+          <div className="rung-clip-field-row">
+            <div className="rung-clip-field">
+              <label className={labelClass()}>Job title *</label>
+              <input className={inputClass()} value={fields.title}
+                onChange={e => setFields(f => f && ({ ...f, title: e.target.value }))} />
+            </div>
+            <div className="rung-clip-field">
+              <label className={labelClass()}>Company *</label>
+              <input className={inputClass()} value={fields.company}
+                onChange={e => setFields(f => f && ({ ...f, company: e.target.value }))} />
+            </div>
+          </div>
+          <div className="rung-clip-field-row">
+            <div className="rung-clip-field">
+              <label className={labelClass()}>Location</label>
+              <input className={inputClass()} value={fields.location}
+                onChange={e => setFields(f => f && ({ ...f, location: e.target.value }))} />
+            </div>
+            <div className="rung-clip-field">
+              <label className={labelClass()}>Salary hint</label>
+              <input className={inputClass()} value={fields.salary_hint}
+                placeholder="e.g. $120k–$150k"
+                onChange={e => setFields(f => f && ({ ...f, salary_hint: e.target.value }))} />
+            </div>
+          </div>
+          {saveErr && <p className="rung-clip-err">{saveErr}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className={buttonClass({ variant: 'primary' })} onClick={save} disabled={saving}>
+              {saving ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
+              {saving ? 'Adding…' : 'Add to leads'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Leads table ────────────────────────────────────────────────────────────────
 function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [leads, setLeads] = useState<JobLead[]>([]);
@@ -361,6 +477,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [runResults, setRunResults] = useState<RunSourceResult[] | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [scoring, setScoring] = useState<Set<string>>(new Set());
+  const [clipOpen, setClipOpen] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -406,11 +523,21 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
     <div className="rung-leads-table-wrap">
       <div className="rung-leads-toolbar">
         <span className="rung-leads-count">{leads.length} new lead{leads.length !== 1 ? 's' : ''}</span>
+        <button className={buttonClass({ variant: 'ghost' })} onClick={() => { setClipOpen(o => !o); setRunResults(null); }} title="Add lead from URL">
+          <Link size={14} /> Clip URL
+        </button>
         <button className={buttonClass({ variant: 'ghost' })} onClick={run} disabled={running}>
           {running ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />}
           {running ? 'Fetching…' : 'Fetch now'}
         </button>
       </div>
+
+      {clipOpen && (
+        <ClipForm
+          onAdded={lead => { setLeads(prev => [lead, ...prev]); }}
+          onClose={() => setClipOpen(false)}
+        />
+      )}
 
       {runResults && (
         <div className="rung-run-results">
