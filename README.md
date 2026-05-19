@@ -212,9 +212,6 @@ Migrations live in `./migrations/` and are applied sequentially with `wrangler d
 ```
 rung/
 ├── wrangler.toml            Cloudflare Worker config (D1, R2, AI, cron)
-├── .github/
-│   └── workflows/
-│       └── deploy.yml       GitHub Actions CI/CD (auto-deploy on push to main)
 ├── extension/               Chrome/Edge browser extension (Manifest V3)
 │   ├── manifest.json        Extension metadata, permissions, content script config
 │   ├── popup.html           Extension popup UI
@@ -369,19 +366,6 @@ Open http://localhost:5173. The Vite proxy handles CORS so the two servers feel 
 ---
 
 ## Deploying
-
-### Automatic (GitHub Actions)
-
-Pushing to `main` triggers the included workflow at `.github/workflows/deploy.yml`, which installs dependencies, builds, and deploys to Cloudflare Workers automatically. A fork guard (`if: github.repository == 'czhengjuarez/rung'`) ensures the workflow only runs on the upstream repo — forks skip it cleanly with no red badge.
-
-To enable auto-deploy on your own fork:
-1. Add two secrets to your GitHub repo (**Settings → Secrets → Actions**):
-   - `CLOUDFLARE_API_TOKEN` — a Cloudflare API token with Workers edit permission
-   - `CLOUDFLARE_ACCOUNT_ID` — your Cloudflare account ID
-2. Update the fork guard in `.github/workflows/deploy.yml` to match your repo name
-3. Push to `main` — the workflow takes care of the rest
-
-### Manual
 
 ```bash
 npm run cf:deploy
