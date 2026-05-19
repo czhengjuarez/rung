@@ -448,6 +448,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
                     {lead.company}
                     {lead.location ? ` · ${lead.location}` : ''}
                     {lead.work_mode ? ` · ${lead.work_mode}` : ''}
+                    {lead.salary_hint ? ` · ${lead.salary_hint}` : ''}
                     {lead.source_label ? ` · ${lead.source_label}` : ''}
                   </span>
                 </div>
