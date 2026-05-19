@@ -486,6 +486,14 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
 
   useEffect(() => { refresh(); }, []);
 
+  // Refresh when the tab regains focus — covers the case where a lead was
+  // added via the browser extension while the user was on another tab.
+  useEffect(() => {
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
   const dismiss = async (id: string) => {
     await api.dismissLead(id);
     setLeads(prev => prev.filter(l => l.id !== id));
