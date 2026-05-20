@@ -5,9 +5,9 @@ import { newId, nowIso } from '../util';
 export const feedbackRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 const TYPE_LABELS: Record<string, string> = {
-  bug:     '🐛 Bug report',
-  feature: '✨ Feature request',
-  other:   '💬 Other',
+  bug:     'Bug report',
+  feature: 'Feature request',
+  other:   'Other',
 };
 
 feedbackRouter.post('/', async (c) => {

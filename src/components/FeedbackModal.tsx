@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { buttonClass, textareaClass } from '@ops-forward/keel';
-import { X } from 'lucide-react';
+import { Bug, CheckCircle, Lightbulb, MessageCircle, X } from 'lucide-react';
 import { api } from '../api';
+import type { LucideIcon } from 'lucide-react';
 
 type FeedbackType = 'bug' | 'feature' | 'other';
 
-const TYPES: { value: FeedbackType; label: string; emoji: string }[] = [
-  { value: 'bug',     label: 'Bug',             emoji: '🐛' },
-  { value: 'feature', label: 'Feature request',  emoji: '✨' },
-  { value: 'other',   label: 'Other',            emoji: '💬' },
+const TYPES: { value: FeedbackType; label: string; icon: LucideIcon }[] = [
+  { value: 'bug',     label: 'Bug',            icon: Bug },
+  { value: 'feature', label: 'Feature',         icon: Lightbulb },
+  { value: 'other',   label: 'Other',           icon: MessageCircle },
 ];
 
 interface Props {
@@ -42,7 +43,7 @@ export function FeedbackModal({ onClose }: Props) {
 
         {done ? (
           <div style={{ padding: '24px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🙏</div>
+            <CheckCircle size={36} style={{ color: 'var(--rung-primary)', marginBottom: 12 }} />
             <p style={{ margin: 0, fontWeight: 600 }}>Thanks for the feedback!</p>
             <p style={{ margin: '6px 0 24px', color: 'var(--rung-text-muted)', fontSize: 14 }}>
               It helps make Rung better.
@@ -52,16 +53,19 @@ export function FeedbackModal({ onClose }: Props) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="rung-feedback-types">
-              {TYPES.map(t => (
-                <button
-                  key={t.value}
-                  className={`rung-feedback-type-btn${type === t.value ? ' active' : ''}`}
-                  onClick={() => setType(t.value)}
-                >
-                  <span>{t.emoji}</span>
-                  <span>{t.label}</span>
-                </button>
-              ))}
+              {TYPES.map(t => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.value}
+                    className={`rung-feedback-type-btn${type === t.value ? ' active' : ''}`}
+                    onClick={() => setType(t.value)}
+                  >
+                    <Icon size={18} />
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <textarea
