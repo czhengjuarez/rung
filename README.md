@@ -13,6 +13,10 @@ Rung is **open source**, **self-hostable**, and built entirely on Cloudflare's f
 ### Applications tracker
 The core of Rung. Add every company you're interested in and move them through your own pipeline: Saved → Applied → Screening → Interviewing → Offer → Accepted / Rejected / Withdrawn. Filter by status, star the ones you care about most, and keep running notes. Each application has a full activity log so you can see exactly when things happened — phone screen on Tuesday, onsite on Thursday, offer on Friday.
 
+**Stack ranking** — drag and drop rows to manually arrange your applications in any priority order. Sort by any column (company, status, date) and drag to lock in that order — the last action always wins. Your ranking is saved and persists across sessions.
+
+**Job posting URL** — each application can store a link to the original posting. An ↗ icon appears in the row for one-click access without opening the edit modal. URLs carry over automatically when converting a lead to an application.
+
 ### Job Leads
 Stop manually hunting for jobs. Add job board sources — Greenhouse, Lever, Workable, or any RSS feed — and Rung fetches new listings automatically every morning. It then scores each one using AI, rating how well it matches your criteria (title keywords, seniority, work mode, location, salary range). New leads are sorted by score so the best ones are always at the top. You can also score any lead on demand, and convert interesting ones directly into tracked applications with one click.
 
@@ -34,6 +38,9 @@ A Chrome/Edge extension lets you clip any job posting to your leads list without
 The extension uses your existing Rung session cookie — no separate login required. If you're not logged in, it opens the Rung web app so you can sign in first.
 
 See [`extension/`](#extension) in the project layout for the files. Load it in Chrome via **Extensions → Load unpacked → select the `extension/` folder**.
+
+### Feedback
+A feedback button in the sidebar footer lets any user submit a bug report, feature request, or general comment. Submissions are stored in D1 and emailed to the instance owner via [Resend](https://resend.com). Requires a `RESEND_API_KEY` secret (free tier covers 100 emails/day). To read submissions directly: `SELECT * FROM feedback ORDER BY created_at DESC` in the D1 console.
 
 ### Public profile
 Optional. Enable a public profile at `/u/your-slug` to share a clean page with your headline and links — useful for networking or putting in your email signature. Your application data is never exposed.
@@ -202,6 +209,7 @@ Login sets an HttpOnly, Secure, SameSite=Lax cookie containing a signed JWT. The
 | `interview_answers` | Per-user saved answers + notes |
 | `resumes` | Resume metadata (file lives in R2) |
 | `resume_tailored` | AI-tailored resume versions |
+| `feedback` | User-submitted bug reports and feature requests |
 
 Migrations live in `./migrations/` and are applied sequentially with `wrangler d1 migrations apply`.
 
@@ -317,6 +325,7 @@ npx wrangler d1 execute rung --remote --file=migrations/seed_questions.sql
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put JWT_SECRET          # any 32+ byte random string
+npx wrangler secret put RESEND_API_KEY      # optional — enables feedback emails (resend.com free tier)
 
 # 10. Register your Google OAuth redirect URIs
 #     In Google Cloud Console → APIs & Services → Credentials → your OAuth client:
