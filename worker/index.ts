@@ -12,6 +12,7 @@ import { runLeadsFetch } from './cron/fetchLeads';
 import { scoreLeads } from './cron/scoreLeads';
 import { sendDailyNotifications } from './cron/sendNotifications';
 import { pushRouter } from './routes/push';
+import { feedbackRouter } from './routes/feedback';
 import type { Env, Variables } from './types';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -52,6 +53,9 @@ api.use('/profile/*', requireUser);
 api.route('/profile', profileRouter);
 
 api.route('/public', publicRouter);
+
+api.use('/feedback/*', requireUser);
+api.route('/feedback', feedbackRouter);
 
 // Push: vapid-public-key is unauthenticated; subscribe + preferences require auth
 api.get('/push/vapid-public-key', (c) => c.json({ publicKey: c.env.VAPID_PUBLIC_KEY }));

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MoreHorizontal, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MessageSquare, MoreHorizontal, Moon, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
 import { api } from './api';
 import type { User } from './types';
 import { RungLogo } from './components/RungLogo';
 import { Toast } from './components/Toast';
+import { FeedbackModal } from './components/FeedbackModal';
 
 type Theme = 'light' | 'dark';
 
@@ -56,6 +57,7 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
@@ -108,6 +110,14 @@ export default function App() {
         </nav>
 
         <div className="rung-sidebar-footer">
+          <button
+            className="rung-feedback-btn"
+            onClick={() => setFeedbackOpen(true)}
+            title="Send feedback"
+          >
+            <MessageSquare size={14} /> Feedback
+          </button>
+          <div className="rung-sidebar-footer-row">
           <div className="rung-sidebar-user">
             {user.avatar_url && <img className="rung-avatar" src={user.avatar_url} alt="" />}
             <span className="rung-sidebar-username">{user.name?.split(' ')[0] || user.email}</span>
@@ -125,7 +135,10 @@ export default function App() {
               <LogOut size={15} />
             </button>
           </div>
+          </div>
         </div>
+
+        {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       </aside>
 
       <main className="rung-main">

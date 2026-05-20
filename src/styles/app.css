@@ -98,11 +98,66 @@ a { color: inherit; }
 
 .rung-sidebar-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
   padding: var(--rung-space-3) var(--rung-space-3);
   border-top: 1px solid var(--rung-border);
   margin-top: auto;
+}
+.rung-sidebar-footer > .rung-sidebar-user,
+.rung-sidebar-footer > .rung-sidebar-footer-actions {
+  /* keep user row and actions on one line */
+}
+.rung-sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rung-feedback-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--rung-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rung-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.rung-feedback-btn:hover {
+  background: var(--rung-surface-2);
+  color: var(--rung-text);
+}
+
+/* ── Feedback type selector ───────────────────────────────────────────────── */
+.rung-feedback-types {
+  display: flex;
+  gap: 8px;
+}
+.rung-feedback-type-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--rung-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rung-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rung-feedback-type-btn:hover { background: var(--rung-surface-2); }
+.rung-feedback-type-btn.active {
+  border-color: var(--rung-primary);
+  background: color-mix(in srgb, var(--rung-primary) 8%, transparent);
+  color: var(--rung-text);
+  font-weight: 600;
 }
 .rung-sidebar-user {
   display: flex;

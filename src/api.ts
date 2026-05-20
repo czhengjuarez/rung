@@ -151,4 +151,7 @@ export const api = {
     request<{ preferences: NotificationPreferences | null }>('/api/push/preferences'),
   saveNotifPrefs: (body: Partial<NotificationPreferences>) =>
     request<{ preferences: NotificationPreferences }>('/api/push/preferences', { method: 'PUT', body: JSON.stringify(body) }),
+
+  submitFeedback: (type: 'bug' | 'feature' | 'other', message: string) =>
+    request<{ ok: boolean }>('/api/feedback', { method: 'POST', body: JSON.stringify({ type, message }) }),
 };
