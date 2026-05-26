@@ -2136,3 +2136,133 @@ a { color: inherit; }
   align-self: flex-start;
 }
 .rung-notif-save-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Extension page ───────────────────────────────────────────────────────── */
+.rung-ext-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rung-space-5);
+  max-width: 780px;
+  padding: var(--rung-space-5);
+}
+.rung-ext-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--rung-space-4);
+}
+.rung-ext-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--rung-primary) 12%, transparent);
+  color: var(--rung-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rung-ext-hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.rung-ext-hero-sub {
+  margin: 0;
+  color: var(--rung-text-muted);
+  font-size: 14px;
+}
+.rung-ext-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rung-ext-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--rung-border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--rung-text-muted);
+}
+.rung-ext-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--rung-space-5);
+}
+@media (max-width: 640px) { .rung-ext-columns { grid-template-columns: 1fr; } }
+.rung-ext-section { display: flex; flex-direction: column; gap: 12px; }
+.rung-ext-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rung-border);
+}
+.rung-ext-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rung-ext-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.rung-ext-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--rung-primary) 15%, transparent);
+  color: var(--rung-primary);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.rung-ext-step-body {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: var(--rung-text-muted);
+  line-height: 1.5;
+}
+.rung-ext-code {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--rung-surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.rung-ext-link {
+  color: var(--rung-primary);
+  text-decoration: none;
+}
+.rung-ext-link:hover { text-decoration: underline; }
+.rung-ext-sites {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rung-ext-site-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--rung-border);
+  border-radius: 20px;
+  font-size: 13px;
+  background: var(--rung-surface-2);
+}
+.rung-ext-note {
+  font-size: 12px;
+  color: var(--rung-text-muted);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
