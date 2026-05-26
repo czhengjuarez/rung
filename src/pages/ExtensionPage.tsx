@@ -1,21 +1,14 @@
-import { Chrome, ClipboardList, ExternalLink, Puzzle, Zap } from 'lucide-react';
+import { Chrome, ClipboardList, Download, Puzzle, Zap } from 'lucide-react';
+import { buttonClass } from '@ops-forward/keel';
 
 const STEPS_CHROME = [
   {
     step: 1,
-    title: 'Download the extension folder',
+    title: 'Download the extension',
     body: (
       <>
-        Clone the Rung repo or{' '}
-        <a
-          href="https://github.com/czhengjuarez/rung/archive/refs/heads/main.zip"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rung-ext-link"
-        >
-          download the zip from GitHub <ExternalLink size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />
-        </a>
-        {' '}and unzip it. The extension lives in the <code className="rung-ext-code">extension/</code> folder.
+        Click the <strong>Download Extension</strong> button above and unzip the file.
+        You'll get an <code className="rung-ext-code">extension/</code> folder — keep it somewhere easy to find.
       </>
     ),
   },
@@ -72,6 +65,15 @@ export default function ExtensionPage() {
           </p>
         </div>
       </div>
+
+      {/* Download button */}
+      <a
+        href="/api/public/extension/download"
+        className={buttonClass({ variant: 'primary' })}
+        style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+      >
+        <Download size={15} /> Download Extension (.zip)
+      </a>
 
       {/* Feature chips */}
       <div className="rung-ext-chips">

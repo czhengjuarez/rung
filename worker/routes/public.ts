@@ -3,6 +3,18 @@ import type { Env, Variables } from '../types';
 
 export const publicRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+publicRouter.get('/extension/download', async (c) => {
+  const obj = await c.env.DOCS.get('public/rung-extension.zip');
+  if (!obj) return c.json({ error: 'not found' }, 404);
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'attachment; filename="rung-extension.zip"',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+});
+
 publicRouter.get('/profile/:slug', async (c) => {
   const slug = c.req.param('slug');
   const profile = await c.env.DB
