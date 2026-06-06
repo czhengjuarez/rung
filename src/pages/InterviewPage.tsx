@@ -333,6 +333,8 @@ function QuestionCard({
   );
 }
 
+const QUESTIONS_PER_PAGE = 10;
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function InterviewPage() {
   const [tab, setTab] = useState<'public' | 'private'>('public');
@@ -340,6 +342,7 @@ export default function InterviewPage() {
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setLoading(true);
@@ -350,6 +353,7 @@ export default function InterviewPage() {
   };
 
   useEffect(() => { load(); }, [tab, category]);
+  useEffect(() => { setPage(1); }, [tab, category]);
 
   const onDeleted = (id: string) => setQuestions(prev => prev.filter(q => q.id !== id));
 
@@ -363,6 +367,11 @@ export default function InterviewPage() {
   const onAnswerSaved = (id: string, answer: string | null, notes: string | null) => {
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, my_answer: answer, my_notes: notes } : q));
   };
+
+  const totalPages = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * QUESTIONS_PER_PAGE;
+  const pageQuestions = questions.slice(pageStart, pageStart + QUESTIONS_PER_PAGE);
 
   return (
     <div className="rung-interview-page">
@@ -408,11 +417,33 @@ export default function InterviewPage() {
             : 'No private questions yet. Add one to start building your prep notes.'}
         </div>
       ) : (
-        <div className="rung-iq-list">
-          {questions.map(q => (
-            <QuestionCard key={q.id} q={q} onDeleted={onDeleted} onAnswerSaved={onAnswerSaved} />
-          ))}
-        </div>
+        <>
+          <div className="rung-iq-list">
+            {pageQuestions.map(q => (
+              <QuestionCard key={q.id} q={q} onDeleted={onDeleted} onAnswerSaved={onAnswerSaved} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="rung-iq-pagination">
+              <button
+                className="rung-iq-page-btn"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}>
+                ← Prev
+              </button>
+              <span className="rung-iq-page-info">
+                {pageStart + 1}–{Math.min(pageStart + QUESTIONS_PER_PAGE, questions.length)} of {questions.length}
+              </span>
+              <button
+                className="rung-iq-page-btn"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}>
+                Next →
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {adding && (

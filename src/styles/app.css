@@ -437,6 +437,33 @@ a { color: inherit; }
   font-style: italic;
   margin: 0;
 }
+.rung-iq-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rung-border);
+}
+.rung-iq-page-btn {
+  background: var(--rung-surface-raised);
+  border: 1px solid var(--rung-border);
+  border-radius: 6px;
+  color: var(--rung-text);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.rung-iq-page-btn:hover:not(:disabled) { border-color: var(--rung-accent); color: var(--rung-accent); }
+.rung-iq-page-btn:disabled { opacity: 0.35; cursor: default; }
+.rung-iq-page-info {
+  font-size: 12px;
+  color: var(--rung-text-muted);
+  min-width: 110px;
+  text-align: center;
+}
 
 .rung-page-title {
   display: flex;
