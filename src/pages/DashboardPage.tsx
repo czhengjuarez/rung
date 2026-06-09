@@ -56,6 +56,8 @@ const STALE_STATUSES: ApplicationStatus[] = [
 ];
 const STALE_DAYS = 7;
 
+const CLOSED_STATUSES: ApplicationStatus[] = ['Rejected', 'Withdrawn', 'Skip', '3m ghosted'];
+
 function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
@@ -131,6 +133,53 @@ function SortableRow({ app, draggable, onOpen, onToggleStar }: SortableRowProps)
   );
 }
 
+// ── Plain (non-draggable) row for the Closed section ─────────────────────────
+
+function ClosedRow({ app, onOpen, onToggleStar }: { app: Application; onOpen: () => void; onToggleStar: () => void }) {
+  return (
+    <tr onClick={onOpen} style={{ opacity: 0.75 }}>
+      <td className="rung-drag-handle" title="Closed applications cannot be reordered">
+        <GripVertical size={14} />
+      </td>
+      <td onClick={(e) => { e.stopPropagation(); onToggleStar(); }}>
+        <button className={`rung-star ${app.starred ? 'on' : ''}`} aria-label="Star">
+          <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
+        </button>
+      </td>
+      <td onClick={e => e.stopPropagation()} style={{ width: 28, padding: '0 4px' }}>
+        {app.external_url && (
+          <a href={app.external_url} target="_blank" rel="noopener noreferrer"
+             className="rung-icon-btn" title="Open job posting" style={{ display: 'inline-flex' }}>
+            <ExternalLink size={13} />
+          </a>
+        )}
+      </td>
+      <td style={{ color: app.contact_count > 0 ? 'var(--rung-text-muted)' : 'var(--rung-text-faint)', fontSize: 12 }}>
+        {app.contact_count > 0 ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Users size={12} /> {app.contact_count}
+          </span>
+        ) : '—'}
+      </td>
+      <td><strong>{app.company}</strong></td>
+      <td>{app.role || '—'}</td>
+      <td>{app.location || '—'}</td>
+      <td>{app.industry || '—'}</td>
+      <td style={{ maxWidth: 120 }}>
+        {app.resume_label
+          ? <span className="rung-resume-chip" title={app.resume_label}>{app.resume_label}</span>
+          : <span style={{ color: 'var(--rung-text-faint)' }}>—</span>}
+      </td>
+      <td>
+        <span className={badgeClass({ variant: statusVariant[app.status] })}>
+          {app.status}
+        </span>
+      </td>
+      <td>{app.applied_at ? new Date(app.applied_at).toLocaleDateString() : '—'}</td>
+    </tr>
+  );
+}
+
 export default function DashboardPage() {
   const ctx = useOutletContext<AppContext>();
   const [apps, setApps] = useState<Application[]>([]);
@@ -142,6 +191,8 @@ export default function DashboardPage() {
   const [sortKey, setSortKey] = useState<keyof Application | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [appsOpen, setAppsOpen] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(true);
+  const [closedOpen, setClosedOpen] = useState(false);
 
   const refresh = () => api.listApplications().then((r) => setApps(r.applications));
   useEffect(() => { refresh(); }, []);
@@ -168,11 +219,12 @@ export default function DashboardPage() {
 
   const kpis = useMemo(() => {
     const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const activeOnly = apps.filter(a => !CLOSED_STATUSES.includes(a.status));
     return {
-      total: apps.length,
-      thisWeek: apps.filter(a => a.applied_at && Date.now() - new Date(a.applied_at).getTime() < weekMs).length,
-      active: apps.filter(a => ACTIVE_STATUSES.includes(a.status)).length,
-      followUp: apps.filter(a => STALE_STATUSES.includes(a.status) && daysSince(lastTouch(a)) >= STALE_DAYS).length,
+      total: activeOnly.length,
+      thisWeek: activeOnly.filter(a => a.applied_at && Date.now() - new Date(a.applied_at).getTime() < weekMs).length,
+      active: activeOnly.filter(a => ACTIVE_STATUSES.includes(a.status)).length,
+      followUp: activeOnly.filter(a => STALE_STATUSES.includes(a.status) && daysSince(lastTouch(a)) >= STALE_DAYS).length,
     };
   }, [apps]);
 
@@ -193,39 +245,57 @@ export default function DashboardPage() {
     return sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
   };
 
-  const filtered = useMemo(() => {
+  const applySearch = (rows: Application[]) => {
     const q = query.trim().toLowerCase();
-    let rows = apps.filter((a) => {
-      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
-      if (!q) return true;
-      return [a.company, a.role, a.location, a.industry, a.referral, a.notes]
+    if (!q) return rows;
+    return rows.filter(a =>
+      [a.company, a.role, a.location, a.industry, a.referral, a.notes]
         .filter(Boolean)
-        .some((v) => v!.toString().toLowerCase().includes(q));
+        .some((v) => v!.toString().toLowerCase().includes(q))
+    );
+  };
+
+  const applySort = (rows: Application[]) => {
+    if (!sortKey) return rows;
+    return [...rows].sort((a, b) => {
+      const av = (a[sortKey] ?? '') as string;
+      const bv = (b[sortKey] ?? '') as string;
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortDir === 'asc' ? cmp : -cmp;
     });
-    if (sortKey) {
-      rows = [...rows].sort((a, b) => {
-        const av = (a[sortKey] ?? '') as string;
-        const bv = (b[sortKey] ?? '') as string;
-        const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-        return sortDir === 'asc' ? cmp : -cmp;
-      });
-    }
-    return rows;
+  };
+
+  // Active (non-closed) applications
+  const filteredActive = useMemo(() => {
+    let rows = apps.filter(a => !CLOSED_STATUSES.includes(a.status));
+    if (statusFilter !== 'all') rows = rows.filter(a => a.status === statusFilter);
+    return applySort(applySearch(rows));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apps, query, statusFilter, sortKey, sortDir]);
 
+  // Closed applications
+  const filteredClosed = useMemo(() => {
+    let rows = apps.filter(a => CLOSED_STATUSES.includes(a.status));
+    if (statusFilter !== 'all') rows = rows.filter(a => a.status === statusFilter);
+    return applySort(applySearch(rows));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apps, query, statusFilter, sortKey, sortDir]);
+
+  const hasClosedApps = useMemo(() => apps.some(a => CLOSED_STATUSES.includes(a.status)), [apps]);
+
   // Drag commits the current visible order as the new rank and clears any column sort.
-  // Defined after `filtered` so it closes over the current sorted/filtered list.
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = filtered.findIndex(a => a.id === active.id);
-    const newIndex = filtered.findIndex(a => a.id === over.id);
-    const reordered = arrayMove(filtered, oldIndex, newIndex);
-    setApps(reordered);   // filtered === apps when draggable (no search/filter)
-    setSortKey(null);     // drag wins — clear column sort
+    const oldIndex = filteredActive.findIndex(a => a.id === active.id);
+    const newIndex = filteredActive.findIndex(a => a.id === over.id);
+    const reorderedActive = arrayMove(filteredActive, oldIndex, newIndex);
+    const closedFromState = apps.filter(a => CLOSED_STATUSES.includes(a.status));
+    setApps([...reorderedActive, ...closedFromState]);
+    setSortKey(null);
     setSortDir('asc');
     try {
-      await api.reorderApplications(reordered.map(a => a.id));
+      await api.reorderApplications(reorderedActive.map(a => a.id));
     } catch {
       refresh();
     }
@@ -241,8 +311,33 @@ export default function DashboardPage() {
     }
   };
 
+  const tableHeaders = (
+    <tr>
+      <th className="rung-th-grip">
+        <GripVertical size={13} style={{ opacity: draggable ? 0.4 : 0.15 }} />
+      </th>
+      <th></th>
+      <th></th>
+      <th title="Linked contacts"><Users size={13} /></th>
+      {([
+        ['company',      'Company'],
+        ['role',         'Role'],
+        ['location',     'Location'],
+        ['industry',     'Industry'],
+        ['resume_label', 'Resume'],
+        ['status',       'Status'],
+        ['applied_at',   'Applied'],
+      ] as [keyof Application, string][]).map(([key, label]) => (
+        <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
+          {label} <SortIcon col={key} />
+        </th>
+      ))}
+    </tr>
+  );
+
   return (
     <>
+      {/* ── Applications section ───────────────────────────────────────────── */}
       <div className={`rung-section-header${appsOpen ? ' open' : ''}`} onClick={() => setAppsOpen(o => !o)}>
         <div className="rung-section-header-left">
           <span className="rung-section-chevron">
@@ -251,7 +346,7 @@ export default function DashboardPage() {
           <h1>Applications</h1>
           {!appsOpen && apps.length > 0 && (
             <span className="rung-section-summary">
-              {apps.length} total · {kpis.active} in process
+              {kpis.total} total · {kpis.active} in process
               {kpis.followUp > 0 && <span className="warn"> · {kpis.followUp} follow-up</span>}
             </span>
           )}
@@ -271,51 +366,69 @@ export default function DashboardPage() {
 
       {appsOpen && (
         <div className="rung-section-body">
-          {apps.length > 0 && (
-            <div className="rung-kpi-strip">
-              <div className="rung-kpi-card">
-                <span className="rung-kpi-value">{kpis.total}</span>
-                <span className="rung-kpi-label">Total</span>
-              </div>
-              <div className="rung-kpi-card">
-                <span className="rung-kpi-value">{kpis.thisWeek}</span>
-                <span className="rung-kpi-label">Applied this week</span>
-              </div>
-              <div className="rung-kpi-card">
-                <span className="rung-kpi-value">{kpis.active}</span>
-                <span className="rung-kpi-label">In process</span>
-              </div>
-              <div className={`rung-kpi-card${kpis.followUp > 0 ? ' warn' : ''}`}>
-                <span className="rung-kpi-value">{kpis.followUp}</span>
-                <span className="rung-kpi-label">Need follow-up</span>
-              </div>
+          {kpis.total > 0 && (
+            <div className="rung-stats-toggle-row">
+              <button
+                className="rung-stats-toggle"
+                onClick={() => setStatsOpen(o => !o)}
+                aria-label={statsOpen ? 'Hide stats' : 'Show stats'}
+              >
+                {statsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {statsOpen ? 'Hide stats' : 'Show stats'}
+                {!statsOpen && kpis.followUp > 0 && (
+                  <span className="rung-stats-toggle-warn">{kpis.followUp} follow-up</span>
+                )}
+              </button>
             </div>
           )}
 
-          {staleApps.length > 0 && (
-            <div className="rung-followup">
-              <div className="rung-followup-header">
-                <AlertCircle size={15} />
-                <strong>Follow-up needed</strong>
-                <span className="rung-followup-note">No activity in {STALE_DAYS}+ days</span>
+          {kpis.total > 0 && statsOpen && (
+            <>
+              <div className="rung-kpi-strip">
+                <div className="rung-kpi-card">
+                  <span className="rung-kpi-value">{kpis.total}</span>
+                  <span className="rung-kpi-label">Total</span>
+                </div>
+                <div className="rung-kpi-card">
+                  <span className="rung-kpi-value">{kpis.thisWeek}</span>
+                  <span className="rung-kpi-label">Applied this week</span>
+                </div>
+                <div className="rung-kpi-card">
+                  <span className="rung-kpi-value">{kpis.active}</span>
+                  <span className="rung-kpi-label">In process</span>
+                </div>
+                <div className={`rung-kpi-card${kpis.followUp > 0 ? ' warn' : ''}`}>
+                  <span className="rung-kpi-value">{kpis.followUp}</span>
+                  <span className="rung-kpi-label">Need follow-up</span>
+                </div>
               </div>
-              <div className="rung-followup-list">
-                {staleApps.map(app => (
-                  <button
-                    key={app.id}
-                    className="rung-followup-item"
-                    onClick={() => setEditing(app)}
-                  >
-                    <span className="rung-followup-company">{app.company}</span>
-                    {app.role && <span className="rung-followup-role">{app.role}</span>}
-                    <span className={`rung-followup-badge ${badgeClass({ variant: statusVariant[app.status] })}`}>
-                      {app.status}
-                    </span>
-                    <span className="rung-followup-age">{daysSince(lastTouch(app))}d ago</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+
+              {staleApps.length > 0 && (
+                <div className="rung-followup">
+                  <div className="rung-followup-header">
+                    <AlertCircle size={15} />
+                    <strong>Follow-up needed</strong>
+                    <span className="rung-followup-note">No activity in {STALE_DAYS}+ days</span>
+                  </div>
+                  <div className="rung-followup-list">
+                    {staleApps.map(app => (
+                      <button
+                        key={app.id}
+                        className="rung-followup-item"
+                        onClick={() => setEditing(app)}
+                      >
+                        <span className="rung-followup-company">{app.company}</span>
+                        {app.role && <span className="rung-followup-role">{app.role}</span>}
+                        <span className={`rung-followup-badge ${badgeClass({ variant: statusVariant[app.status] })}`}>
+                          {app.status}
+                        </span>
+                        <span className="rung-followup-age">{daysSince(lastTouch(app))}d ago</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="rung-toolbar">
@@ -341,42 +454,20 @@ export default function DashboardPage() {
             </select>
           </div>
 
-          {filtered.length === 0 ? (
+          {filteredActive.length === 0 ? (
             <div className="rung-empty">
-              {apps.length === 0
+              {apps.filter(a => !CLOSED_STATUSES.includes(a.status)).length === 0
                 ? 'No applications yet — add one or import from CSV.'
                 : 'No applications match your filters.'}
             </div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={filtered.map(a => a.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={filteredActive.map(a => a.id)} strategy={verticalListSortingStrategy}>
                 <div className="rung-table-wrap">
                   <table className="rung-table">
-                    <thead>
-                      <tr>
-                        <th className="rung-th-grip" title={draggable ? 'Drag to reorder' : 'Clear search / filter to reorder'}>
-                          <GripVertical size={13} style={{ opacity: draggable ? 0.4 : 0.15 }} />
-                        </th>
-                        <th></th>
-                        <th></th>
-                        <th title="Linked contacts"><Users size={13} /></th>
-                        {([
-                          ['company',      'Company'],
-                          ['role',         'Role'],
-                          ['location',     'Location'],
-                          ['industry',     'Industry'],
-                          ['resume_label', 'Resume'],
-                          ['status',       'Status'],
-                          ['applied_at',   'Applied'],
-                        ] as [keyof Application, string][]).map(([key, label]) => (
-                          <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
-                            {label} <SortIcon col={key} />
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
+                    <thead>{tableHeaders}</thead>
                     <tbody>
-                      {filtered.map((app) => (
+                      {filteredActive.map((app) => (
                         <SortableRow
                           key={app.id}
                           app={app}
@@ -390,7 +481,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="rung-cards">
-                  {filtered.map((app) => (
+                  {filteredActive.map((app) => (
                     <div className="rung-card" key={app.id} onClick={() => setEditing(app)}>
                       <div className="row">
                         <span className="company">{app.company}</span>
@@ -424,6 +515,110 @@ export default function DashboardPage() {
             </DndContext>
           )}
         </div>
+      )}
+
+      {/* ── Closed section ────────────────────────────────────────────────── */}
+      {hasClosedApps && (
+        <>
+          <div
+            className={`rung-section-header${closedOpen ? ' open' : ''}`}
+            onClick={() => setClosedOpen(o => !o)}
+            style={{ marginTop: 'var(--rung-space-3)' }}
+          >
+            <div className="rung-section-header-left">
+              <span className="rung-section-chevron">
+                {closedOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+              </span>
+              <h1>Closed</h1>
+              <span className="rung-section-summary">
+                {filteredClosed.length} {filteredClosed.length === 1 ? 'entry' : 'entries'}
+                <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--rung-text-faint)' }}>
+                  Rejected · Withdrawn · Skipped · Ghosted
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {closedOpen && (
+            <div className="rung-section-body">
+              {filteredClosed.length === 0 ? (
+                <div className="rung-empty">No closed applications match your filters.</div>
+              ) : (
+                <>
+                  <div className="rung-table-wrap">
+                    <table className="rung-table">
+                      <thead>
+                        <tr>
+                          <th className="rung-th-grip">
+                            <GripVertical size={13} style={{ opacity: 0.1 }} />
+                          </th>
+                          <th></th>
+                          <th></th>
+                          <th title="Linked contacts"><Users size={13} /></th>
+                          {([
+                            ['company',      'Company'],
+                            ['role',         'Role'],
+                            ['location',     'Location'],
+                            ['industry',     'Industry'],
+                            ['resume_label', 'Resume'],
+                            ['status',       'Status'],
+                            ['applied_at',   'Applied'],
+                          ] as [keyof Application, string][]).map(([key, label]) => (
+                            <th key={key} className="rung-th-sort" onClick={() => cycleSort(key)}>
+                              {label} <SortIcon col={key} />
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredClosed.map((app) => (
+                          <ClosedRow
+                            key={app.id}
+                            app={app}
+                            onOpen={() => setEditing(app)}
+                            onToggleStar={() => toggleStar(app)}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="rung-cards">
+                    {filteredClosed.map((app) => (
+                      <div className="rung-card" key={app.id} onClick={() => setEditing(app)} style={{ opacity: 0.8 }}>
+                        <div className="row">
+                          <span className="company">{app.company}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
+                            {app.external_url && (
+                              <a href={app.external_url} target="_blank" rel="noopener noreferrer"
+                                 className="rung-icon-btn" title="Open job posting">
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
+                            <button
+                              className={`rung-star ${app.starred ? 'on' : ''}`}
+                              aria-label="Star"
+                              onClick={() => toggleStar(app)}
+                            >
+                              <Star size={16} fill={app.starred ? 'currentColor' : 'none'} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="meta">{app.role || '—'} · {app.location || '—'}</div>
+                        <div className="row">
+                          <span className={badgeClass({ variant: statusVariant[app.status] })}>{app.status}</span>
+                          <span className="meta">
+                            {app.applied_at ? new Date(app.applied_at).toLocaleDateString() : 'no date'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {(creating || editing) && (

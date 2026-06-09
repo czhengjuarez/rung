@@ -844,6 +844,33 @@ a { color: inherit; }
   background: var(--rung-border);
 }
 
+/* Stats toggle */
+.rung-stats-toggle-row {
+  display: flex;
+  margin-bottom: var(--rung-space-2);
+}
+.rung-stats-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 3px 0;
+  color: var(--rung-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rung-stats-toggle:hover { color: var(--rung-text); }
+.rung-stats-toggle-warn {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(245, 176, 65, 0.15);
+  color: #92400E;
+  font-weight: 600;
+}
+
 /* KPI strip */
 .rung-kpi-strip {
   display: grid;
