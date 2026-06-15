@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MessageSquare, MoreHorizontal, Moon, Puzzle, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, FileText, HelpCircle, History, Link2, LogOut, MessageSquare, MoreHorizontal, Moon, Puzzle, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
 import { api } from './api';
 import type { User } from './types';
 import { RungLogo } from './components/RungLogo';
@@ -33,6 +33,7 @@ const NAV_GROUPS = [
       { to: '/links',         label: 'Links',         icon: Link2,     end: false },
       { to: '/notifications', label: 'Notifications', icon: Bell,      end: false },
       { to: '/extension',    label: 'Extension',     icon: Puzzle,    end: false },
+      { to: '/changelog',    label: "What's new",    icon: History,   end: false },
     ],
   },
 ] as const;
@@ -50,6 +51,7 @@ const MORE_ITEMS = [
   { to: '/links',         label: 'Links',         icon: Link2 },
   { to: '/notifications', label: 'Notifications', icon: Bell },
   { to: '/extension',    label: 'Extension',     icon: Puzzle },
+  { to: '/changelog',    label: "What's new",    icon: History },
 ] as const;
 
 export default function App() {

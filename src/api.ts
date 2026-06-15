@@ -97,6 +97,8 @@ export const api = {
 
   listLeads: (state: string = 'new') =>
     request<{ leads: JobLead[] }>(`/api/leads?state=${encodeURIComponent(state)}`),
+  updateLead: (id: string, body: Partial<Pick<JobLead, 'title' | 'company' | 'location' | 'work_mode' | 'salary_hint' | 'external_url' | 'description'>>) =>
+    request<{ lead: JobLead }>(`/api/leads/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   scoreLead: (id: string) => request<{ score: number; score_reason: string }>(`/api/leads/${id}/score`, { method: 'POST' }),
   dismissLead: (id: string) => request<{ ok: boolean }>(`/api/leads/${id}/dismiss`, { method: 'POST' }),
   convertLead: (id: string) => request<{ application: Application }>(`/api/leads/${id}/convert`, { method: 'POST' }),

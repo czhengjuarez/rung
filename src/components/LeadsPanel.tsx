@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { buttonClass, inputClass, labelClass, selectClass } from '@ops-forward/keel';
+import { buttonClass, inputClass, labelClass, selectClass, textareaClass } from '@ops-forward/keel';
 import {
-  Check, ChevronDown, ChevronUp, ExternalLink, Link, Loader2, PlayCircle, Plus, RefreshCw, Trash2, X
+  Check, ChevronDown, ChevronUp, ExternalLink, Link, Loader2, Pencil, PlayCircle, Plus, RefreshCw, Trash2, X
 } from 'lucide-react';
 import { api } from '../api';
 import type { JobLead, LeadCriteria, LeadSource } from '../types';
+
+const WORK_MODES = ['', 'Remote', 'Hybrid', 'Onsite'];
 
 const SOURCE_TYPES = ['greenhouse', 'lever', 'workable', 'rss'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -353,6 +355,29 @@ function SourcesManager() {
 
 interface RunSourceResult { source_id: string; label: string; fetched: number; inserted: number; error: string | null }
 
+// ── Edit form (manual correction of a fetched/clipped lead) ────────────────────
+type LeadEditFields = {
+  title: string;
+  company: string;
+  location: string;
+  work_mode: string;
+  salary_hint: string;
+  external_url: string;
+  description: string;
+};
+
+function leadToEditFields(lead: JobLead): LeadEditFields {
+  return {
+    title: lead.title,
+    company: lead.company,
+    location: lead.location ?? '',
+    work_mode: lead.work_mode ?? '',
+    salary_hint: lead.salary_hint ?? '',
+    external_url: lead.external_url,
+    description: lead.description ?? '',
+  };
+}
+
 // ── Clip-from-URL form ────────────────────────────────────────────────────────
 type ClipField = { title: string; company: string; location: string; salary_hint: string; external_url: string; };
 
@@ -478,6 +503,9 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [scoring, setScoring] = useState<Set<string>>(new Set());
   const [clipOpen, setClipOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<LeadEditFields | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -503,6 +531,37 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
     await api.convertLead(id);
     setLeads(prev => prev.filter(l => l.id !== id));
     onConverted();
+  };
+
+  const startEdit = (lead: JobLead) => {
+    setEditingId(lead.id);
+    setEditFields(leadToEditFields(lead));
+    setExpanded(lead.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditFields(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editFields) return;
+    setSavingEdit(true);
+    try {
+      const { lead } = await api.updateLead(editingId, {
+        title: editFields.title.trim(),
+        company: editFields.company.trim(),
+        location: editFields.location.trim() || null,
+        work_mode: editFields.work_mode || null,
+        salary_hint: editFields.salary_hint.trim() || null,
+        external_url: editFields.external_url.trim(),
+        description: editFields.description.trim() || null,
+      });
+      setLeads(prev => prev.map(l => l.id === editingId ? { ...l, ...lead } : l));
+      cancelEdit();
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const scoreNow = async (id: string) => {
@@ -592,6 +651,9 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
                     className="rung-icon-btn" title="Open posting">
                     <ExternalLink size={13} />
                   </a>
+                  <button className="rung-icon-btn" onClick={() => startEdit(lead)} title="Edit details">
+                    <Pencil size={13} />
+                  </button>
                   <button className={buttonClass({ variant: 'primary' })} onClick={() => convert(lead.id)}
                     style={{ fontSize: 12, padding: '3px 10px' }}>
                     Add to apps
@@ -606,11 +668,66 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
               </div>
               {expanded === lead.id && (
                 <div className="rung-lead-detail">
-                  {lead.score_reason && (
-                    <p className="rung-lead-reason"><strong>AI match:</strong> {lead.score_reason}</p>
-                  )}
-                  {lead.description && (
-                    <p className="rung-lead-desc">{lead.description.slice(0, 500)}{lead.description.length > 500 ? '…' : ''}</p>
+                  {editingId === lead.id && editFields ? (
+                    <div className="rung-clip-fields">
+                      <div className="rung-clip-field-row">
+                        <div className="rung-clip-field">
+                          <label className={labelClass()}>Job title</label>
+                          <input className={inputClass()} value={editFields.title}
+                            onChange={e => setEditFields(f => f && ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div className="rung-clip-field">
+                          <label className={labelClass()}>Company</label>
+                          <input className={inputClass()} value={editFields.company}
+                            onChange={e => setEditFields(f => f && ({ ...f, company: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="rung-clip-field-row">
+                        <div className="rung-clip-field">
+                          <label className={labelClass()}>Location</label>
+                          <input className={inputClass()} value={editFields.location}
+                            onChange={e => setEditFields(f => f && ({ ...f, location: e.target.value }))} />
+                        </div>
+                        <div className="rung-clip-field">
+                          <label className={labelClass()}>Work mode</label>
+                          <select className={selectClass()} value={editFields.work_mode}
+                            onChange={e => setEditFields(f => f && ({ ...f, work_mode: e.target.value }))}>
+                            {WORK_MODES.map(m => <option key={m} value={m}>{m || '—'}</option>)}
+                          </select>
+                        </div>
+                        <div className="rung-clip-field">
+                          <label className={labelClass()}>Salary hint</label>
+                          <input className={inputClass()} placeholder="e.g. $120k–$150k" value={editFields.salary_hint}
+                            onChange={e => setEditFields(f => f && ({ ...f, salary_hint: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="rung-clip-field">
+                        <label className={labelClass()}>Posting URL</label>
+                        <input className={inputClass()} value={editFields.external_url}
+                          onChange={e => setEditFields(f => f && ({ ...f, external_url: e.target.value }))} />
+                      </div>
+                      <div className="rung-clip-field">
+                        <label className={labelClass()}>Description</label>
+                        <textarea className={textareaClass()} rows={4} value={editFields.description}
+                          onChange={e => setEditFields(f => f && ({ ...f, description: e.target.value }))} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className={buttonClass({ variant: 'primary' })} onClick={saveEdit} disabled={savingEdit}>
+                          {savingEdit ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
+                          {savingEdit ? 'Saving…' : 'Save'}
+                        </button>
+                        <button className={buttonClass({ variant: 'ghost' })} onClick={cancelEdit}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {lead.score_reason && (
+                        <p className="rung-lead-reason"><strong>AI match:</strong> {lead.score_reason}</p>
+                      )}
+                      {lead.description && (
+                        <p className="rung-lead-desc">{lead.description.slice(0, 500)}{lead.description.length > 500 ? '…' : ''}</p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

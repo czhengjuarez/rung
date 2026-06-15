@@ -144,6 +144,51 @@ leadsRouter.get('/', async (c) => {
   return c.json({ leads: results });
 });
 
+// Manually edit a lead's fields — lets users correct/fill in details that
+// were pulled from a source feed or the browser extension.
+leadsRouter.patch('/:id', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const body = await c.req.json<{
+    title?: string;
+    company?: string;
+    location?: string | null;
+    work_mode?: string | null;
+    salary_hint?: string | null;
+    external_url?: string;
+    description?: string | null;
+  }>();
+
+  const owned = await c.env.DB
+    .prepare('SELECT id FROM job_leads WHERE id = ? AND user_id = ?')
+    .bind(id, user.id).first();
+  if (!owned) return c.json({ error: 'not found' }, 404);
+
+  const sets: string[] = [];
+  const vals: unknown[] = [];
+  if (body.title !== undefined)        { sets.push('title = ?');        vals.push(body.title.trim()); }
+  if (body.company !== undefined)      { sets.push('company = ?');      vals.push(body.company.trim()); }
+  if (body.location !== undefined)     { sets.push('location = ?');     vals.push(body.location); }
+  if (body.work_mode !== undefined)    { sets.push('work_mode = ?');    vals.push(body.work_mode); }
+  if (body.salary_hint !== undefined)  { sets.push('salary_hint = ?');  vals.push(body.salary_hint); }
+  if (body.external_url !== undefined) { sets.push('external_url = ?'); vals.push(body.external_url.trim()); }
+  if (body.description !== undefined) { sets.push('description = ?');  vals.push(body.description?.slice(0, 5000) ?? null); }
+  if (sets.length === 0) return c.json({ error: 'nothing to update' }, 400);
+  vals.push(id);
+
+  await c.env.DB.prepare(`UPDATE job_leads SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+
+  const lead = await c.env.DB
+    .prepare(
+      `SELECT jl.*, ls.label AS source_label, ls.source_type
+       FROM job_leads jl
+       LEFT JOIN lead_sources ls ON ls.id = jl.source_id
+       WHERE jl.id = ?`
+    )
+    .bind(id).first();
+  return c.json({ lead });
+});
+
 // ── URL scraper ───────────────────────────────────────────────────────────────
 // POST /api/leads/scrape — fetch a job posting URL server-side and extract
 // structured fields. Tries (in order): JSON-LD JobPosting → OpenGraph/meta →

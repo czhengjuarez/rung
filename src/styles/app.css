@@ -2316,3 +2316,68 @@ a { color: inherit; }
   margin: 4px 0 0;
   line-height: 1.5;
 }
+
+/* Changelog */
+.rung-changelog-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rung-space-5);
+  max-width: 720px;
+  padding: var(--rung-space-5);
+}
+.rung-changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rung-space-5);
+}
+.rung-changelog-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: var(--rung-space-5);
+  border-bottom: 1px solid var(--rung-border);
+}
+.rung-changelog-entry:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.rung-changelog-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rung-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rung-changelog-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rung-changelog-group-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rung-changelog-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+.rung-changelog-items {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--rung-text-muted);
+  line-height: 1.5;
+}
+.rung-changelog-group:not(:has(.rung-changelog-group-title)) .rung-changelog-items {
+  padding-left: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--rung-text);
+}
