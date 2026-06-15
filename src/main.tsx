@@ -13,7 +13,6 @@ import PublicProfilePage from './pages/PublicProfilePage';
 import ResumePage from './pages/ResumePage';
 import NotificationsPage from './pages/NotificationsPage';
 import ExtensionPage from './pages/ExtensionPage';
-import ChangelogPage from './pages/ChangelogPage';
 import './styles/tokens.css';
 import '@ops-forward/keel/styles.css';
 import './styles/app.css';
@@ -34,7 +33,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/links" element={<LinksPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/extension" element={<ExtensionPage />} />
-          <Route path="/changelog" element={<ChangelogPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
