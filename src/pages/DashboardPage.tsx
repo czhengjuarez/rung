@@ -40,7 +40,7 @@ const statusVariant: Record<ApplicationStatus, 'green' | 'amber' | 'red' | 'blue
   'Final Call':          'amber',
   Offer:                 'green',
   Paused:                'default',
-  '3m ghosted':          'red',
+  'Ghosted':          'red',
   Rejected:              'red',
   Withdrawn:             'default',
   Skip:                  'default',
@@ -56,7 +56,7 @@ const STALE_STATUSES: ApplicationStatus[] = [
 ];
 const STALE_DAYS = 7;
 
-const CLOSED_STATUSES: ApplicationStatus[] = ['Rejected', 'Withdrawn', 'Skip', '3m ghosted'];
+const CLOSED_STATUSES: ApplicationStatus[] = ['Rejected', 'Withdrawn', 'Skip', 'Ghosted'];
 
 function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);

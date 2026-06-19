@@ -10,6 +10,7 @@ export interface Env {
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string;
   RESEND_API_KEY: string;
+  ADMIN_EMAILS: string;
 }
 
 export interface SessionUser {

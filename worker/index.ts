@@ -13,6 +13,7 @@ import { scoreLeads } from './cron/scoreLeads';
 import { sendDailyNotifications } from './cron/sendNotifications';
 import { pushRouter } from './routes/push';
 import { feedbackRouter } from './routes/feedback';
+import { adminRouter } from './routes/admin';
 import type { Env, Variables } from './types';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -23,7 +24,9 @@ const api = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 api.get('/me', async (c) => {
   const user = await loadUser(c);
-  return c.json({ user });
+  const adminEmails = (c.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase());
+  const is_admin = user ? adminEmails.includes(user.email.toLowerCase()) : false;
+  return c.json({ user: user ? { ...user, is_admin } : null });
 });
 
 api.post('/auth/logout', async (c) => {
@@ -56,6 +59,9 @@ api.route('/public', publicRouter);
 
 api.use('/feedback/*', requireUser);
 api.route('/feedback', feedbackRouter);
+
+api.use('/admin/*', requireUser);
+api.route('/admin', adminRouter);
 
 // Push: vapid-public-key is unauthenticated; subscribe + preferences require auth
 api.get('/push/vapid-public-key', (c) => c.json({ publicKey: c.env.VAPID_PUBLIC_KEY }));

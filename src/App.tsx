@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MessageSquare, MoreHorizontal, Moon, Puzzle, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, FileText, HelpCircle, Link2, LogOut, MessageSquare, MoreHorizontal, Moon, Puzzle, ShieldCheck, Sparkles, Sun, User as UserIcon, Users } from 'lucide-react';
 import { api } from './api';
 import type { User } from './types';
 import { RungLogo } from './components/RungLogo';
@@ -111,6 +111,12 @@ export default function App() {
           ))}
         </nav>
 
+        {user.is_admin && (
+          <NavLink to="/admin" className={({ isActive }) => `rung-nav-link${isActive ? ' active' : ''}`}>
+            <ShieldCheck size={16} /> Admin
+          </NavLink>
+        )}
+
         <div className="rung-sidebar-footer">
           <button
             className="rung-feedback-btn"
@@ -185,6 +191,12 @@ export default function App() {
                 {item.label}
               </NavLink>
             ))}
+            {user.is_admin && (
+              <NavLink to="/admin" className={({ isActive }) => `rung-sheet-item${isActive ? ' active' : ''}`}
+                onClick={() => setMoreOpen(false)}>
+                <ShieldCheck size={18} /> Admin
+              </NavLink>
+            )}
             <div className="rung-sheet-divider" />
             <button
               className="rung-sheet-item"

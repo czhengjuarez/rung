@@ -1,4 +1,4 @@
-import type { Application, ApplicationEvent, CoachFeedback, Contact, ContactLink, InterviewQuestion, JobLead, LeadCriteria, LeadSource, NotificationPreferences, OwnProfile, ProfileLink, PublicProfile, Resume, ShortcutLink, TailoredResume, User } from './types';
+import type { AdminFeedback, AdminUser, Application, ApplicationEvent, CoachFeedback, Contact, ContactLink, InterviewQuestion, JobLead, LeadCriteria, LeadSource, NotificationPreferences, OwnProfile, ProfileLink, PublicProfile, Resume, ShortcutLink, TailoredResume, User } from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -156,4 +156,9 @@ export const api = {
 
   submitFeedback: (type: 'bug' | 'feature' | 'other', message: string) =>
     request<{ ok: boolean }>('/api/feedback', { method: 'POST', body: JSON.stringify({ type, message }) }),
+
+  adminListUsers: () => request<{ users: AdminUser[] }>('/api/admin/users'),
+  adminListFeedback: () => request<{ feedback: AdminFeedback[] }>('/api/admin/feedback'),
+  adminResolveFeedback: (id: string, resolved: boolean) =>
+    request<{ feedback: AdminFeedback }>(`/api/admin/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ resolved: resolved ? 1 : 0 }) }),
 };

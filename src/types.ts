@@ -3,6 +3,29 @@ export interface User {
   email: string;
   name: string;
   avatar_url: string | null;
+  is_admin?: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  created_at: string;
+  app_count: number;
+  lead_count: number;
+  feedback_count: number;
+}
+
+export interface AdminFeedback {
+  id: string;
+  type: 'bug' | 'feature' | 'other';
+  message: string;
+  resolved: number;
+  created_at: string;
+  user_name: string;
+  user_email: string;
+  user_avatar: string | null;
 }
 
 export interface ShortcutLink {
@@ -28,7 +51,7 @@ export type ApplicationStatus =
   | 'Final Call'
   | 'Offer'
   | 'Paused'
-  | '3m ghosted'
+  | 'Ghosted'
   | 'Rejected'
   | 'Withdrawn'
   | 'Skip';
@@ -48,7 +71,7 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   'Final Call',
   'Offer',
   'Paused',
-  '3m ghosted',
+  'Ghosted',
   'Rejected',
   'Withdrawn',
   'Skip',
