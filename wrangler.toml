@@ -37,3 +37,4 @@ ADMIN_EMAILS = "czheng.juarez@gmail.com"
 #   GOOGLE_CLIENT_SECRET =
 #   JWT_SECRET =
 #   VAPID_PRIVATE_KEY =
+# To add more admins later, just update ADMIN_EMAILS in wrangler.toml as a comma-separated list and redeploy.
