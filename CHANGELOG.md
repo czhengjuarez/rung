@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-06-29
+
+- **Clear all leads** — dismiss your entire leads list in one click from the Leads toolbar. A confirmation modal shows how many leads will be dismissed before anything is removed.
+- **Closed status** — added "Closed" as a new application status (for when a position is filled or no longer available). It routes automatically to the Closed section alongside Rejected, Withdrawn, Skip, and Ghosted.
+- **Status list sorted alphabetically** — the status dropdown in the application editor is now in alphabetical order.
+
 ## 2026-06-15
 
 - Edit job leads directly — fix typos, fill in missing details, or update salary/location/description on any lead before deciding whether to add it to your applications.

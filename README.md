@@ -17,12 +17,14 @@ The core of Rung. Add every company you're interested in and move them through y
 
 **Job posting URL** — each application can store a link to the original posting. An ↗ icon appears in the row for one-click access without opening the edit modal. URLs carry over automatically when converting a lead to an application.
 
-**Closed section** — applications with terminal statuses (Rejected, Withdrawn, Skip, 3m ghosted) are automatically moved to a separate collapsed "Closed" section below your active pipeline. This keeps your working list focused on live opportunities while still letting you open, edit, and reference past applications. The KPI strip and follow-up widget only count active applications.
+**Closed section** — applications with terminal statuses (Rejected, Withdrawn, Closed, Skip, Ghosted) are automatically moved to a separate collapsed "Closed" section below your active pipeline. This keeps your working list focused on live opportunities while still letting you open, edit, and reference past applications. The KPI strip and follow-up widget only count active applications.
 
 **Collapsible stats** — the KPI strip and follow-up widget can be hidden with a single click, leaving just the search toolbar and table for a cleaner view. If there are pending follow-ups, the count stays visible in the toggle even when stats are collapsed.
 
 ### Job Leads
 Stop manually hunting for jobs. Add job board sources — Greenhouse, Lever, Workable, or any RSS feed — and Rung fetches new listings automatically every morning. It then scores each one using AI, rating how well it matches your criteria (title keywords, seniority, work mode, location, salary range). New leads are sorted by score so the best ones are always at the top. You can also score any lead on demand, and convert interesting ones directly into tracked applications with one click.
+
+**Clear all** — dismiss your entire leads list in one click from the toolbar. A confirmation modal explains what will happen before anything is removed.
 
 You can also **clip any job posting** directly into your leads list — either by pasting a URL in the app (Leads → Clip URL) or using the browser extension (see below). Rung scrapes the title, company, location, and salary from the page automatically.
 
