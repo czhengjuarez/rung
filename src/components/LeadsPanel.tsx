@@ -586,6 +586,12 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
     } finally { setRunning(false); }
   };
 
+  const clearAll = async () => {
+    if (!window.confirm(`Dismiss all ${leads.length} lead${leads.length !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    await api.dismissAllLeads();
+    await refresh();
+  };
+
   return (
     <div className="rung-leads-table-wrap">
       <div className="rung-leads-toolbar">
@@ -597,6 +603,11 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
           {running ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />}
           {running ? 'Fetching…' : 'Fetch now'}
         </button>
+        {leads.length > 0 && (
+          <button className={buttonClass({ variant: 'ghost' })} onClick={clearAll} style={{ color: 'var(--rung-text-muted)' }}>
+            Clear all
+          </button>
+        )}
       </div>
 
       {clipOpen && (

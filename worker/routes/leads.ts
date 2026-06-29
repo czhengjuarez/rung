@@ -489,6 +489,14 @@ leadsRouter.post('/:id/dismiss', async (c) => {
   return c.json({ ok: true });
 });
 
+leadsRouter.post('/dismiss-all', async (c) => {
+  const user = c.get('user');
+  const { changes } = await c.env.DB
+    .prepare("UPDATE job_leads SET state = 'dismissed' WHERE user_id = ? AND state = 'new'")
+    .bind(user.id).run();
+  return c.json({ ok: true, dismissed: changes });
+});
+
 // Parse a free-text salary hint into numeric low/high + currency.
 // Handles: "$140k–$180k", "$120k-$150k", "$140,000–$180,000",
 //          "£80k-£100k", "€90k", "120000-150000", etc.

@@ -101,6 +101,7 @@ export const api = {
     request<{ lead: JobLead }>(`/api/leads/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   scoreLead: (id: string) => request<{ score: number; score_reason: string }>(`/api/leads/${id}/score`, { method: 'POST' }),
   dismissLead: (id: string) => request<{ ok: boolean }>(`/api/leads/${id}/dismiss`, { method: 'POST' }),
+  dismissAllLeads: () => request<{ ok: boolean; dismissed: number }>('/api/leads/dismiss-all', { method: 'POST' }),
   convertLead: (id: string) => request<{ application: Application }>(`/api/leads/${id}/convert`, { method: 'POST' }),
   runLeads: () => request<{ ok: boolean; inserted: number; sources: Array<{ source_id: string; label: string; fetched: number; inserted: number; error: string | null }> }>('/api/leads/run', { method: 'POST' }),
 
