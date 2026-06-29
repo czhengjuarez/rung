@@ -491,10 +491,10 @@ leadsRouter.post('/:id/dismiss', async (c) => {
 
 leadsRouter.post('/dismiss-all', async (c) => {
   const user = c.get('user');
-  const { changes } = await c.env.DB
+  const result = await c.env.DB
     .prepare("UPDATE job_leads SET state = 'dismissed' WHERE user_id = ? AND state = 'new'")
     .bind(user.id).run();
-  return c.json({ ok: true, dismissed: changes });
+  return c.json({ ok: true, dismissed: result.meta.changes });
 });
 
 // Parse a free-text salary hint into numeric low/high + currency.
