@@ -40,7 +40,8 @@ const statusVariant: Record<ApplicationStatus, 'green' | 'amber' | 'red' | 'blue
   'Final Call':          'amber',
   Offer:                 'green',
   Paused:                'default',
-  'Ghosted':          'red',
+  Closed:                'default',
+  'Ghosted':             'red',
   Rejected:              'red',
   Withdrawn:             'default',
   Skip:                  'default',
@@ -56,7 +57,7 @@ const STALE_STATUSES: ApplicationStatus[] = [
 ];
 const STALE_DAYS = 7;
 
-const CLOSED_STATUSES: ApplicationStatus[] = ['Rejected', 'Withdrawn', 'Skip', 'Ghosted'];
+const CLOSED_STATUSES: ApplicationStatus[] = ['Closed', 'Ghosted', 'Rejected', 'Withdrawn', 'Skip'];
 
 function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -533,7 +534,7 @@ export default function DashboardPage() {
               <span className="rung-section-summary">
                 {filteredClosed.length} {filteredClosed.length === 1 ? 'entry' : 'entries'}
                 <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--rung-text-faint)' }}>
-                  Rejected · Withdrawn · Skipped · Ghosted
+                  Closed · Ghosted · Rejected · Withdrawn · Skipped
                 </span>
               </span>
             </div>

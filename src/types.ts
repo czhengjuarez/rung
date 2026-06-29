@@ -37,44 +37,46 @@ export interface ShortcutLink {
 }
 
 export type ApplicationStatus =
-  | 'Approached'
-  | 'Referred'
-  | 'Saved'
-  | 'Save for later'
-  | 'Applied'
-  | 'Recruiter interview'
-  | 'Phone'
-  | 'HM interview'
-  | 'Presentation'
   | '1<>1'
-  | 'Onsite'
+  | 'Applied'
+  | 'Approached'
+  | 'Closed'
   | 'Final Call'
-  | 'Offer'
-  | 'Paused'
   | 'Ghosted'
+  | 'HM interview'
+  | 'Offer'
+  | 'Onsite'
+  | 'Paused'
+  | 'Phone'
+  | 'Presentation'
+  | 'Recruiter interview'
+  | 'Referred'
   | 'Rejected'
-  | 'Withdrawn'
-  | 'Skip';
+  | 'Save for later'
+  | 'Saved'
+  | 'Skip'
+  | 'Withdrawn';
 
 export const APPLICATION_STATUSES: ApplicationStatus[] = [
-  'Approached',
-  'Referred',
-  'Saved',
-  'Save for later',
-  'Applied',
-  'Recruiter interview',
-  'Phone',
-  'HM interview',
-  'Presentation',
   '1<>1',
-  'Onsite',
+  'Applied',
+  'Approached',
+  'Closed',
   'Final Call',
-  'Offer',
-  'Paused',
   'Ghosted',
+  'HM interview',
+  'Offer',
+  'Onsite',
+  'Paused',
+  'Phone',
+  'Presentation',
+  'Recruiter interview',
+  'Referred',
   'Rejected',
-  'Withdrawn',
+  'Save for later',
+  'Saved',
   'Skip',
+  'Withdrawn',
 ];
 
 export interface Application {
