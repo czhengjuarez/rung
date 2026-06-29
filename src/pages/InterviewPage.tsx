@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { badgeClass, buttonClass, inputClass, labelClass, selectClass, textareaClass } from '@ops-forward/keel';
-import { ChevronDown, ChevronUp, Globe, Lock, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Globe, Lock, Pencil, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { api } from '../api';
 import { INTERVIEW_CATEGORIES, type CoachFeedback, type InterviewCategory, type InterviewQuestion } from '../types';
 
@@ -339,6 +339,7 @@ const QUESTIONS_PER_PAGE = 10;
 export default function InterviewPage() {
   const [tab, setTab] = useState<'public' | 'private'>('public');
   const [category, setCategory] = useState<InterviewCategory | 'All'>('All');
+  const [search, setSearch] = useState('');
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -353,7 +354,7 @@ export default function InterviewPage() {
   };
 
   useEffect(() => { load(); }, [tab, category]);
-  useEffect(() => { setPage(1); }, [tab, category]);
+  useEffect(() => { setPage(1); }, [tab, category, search]);
 
   const onDeleted = (id: string) => setQuestions(prev => prev.filter(q => q.id !== id));
 
@@ -368,10 +369,20 @@ export default function InterviewPage() {
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, my_answer: answer, my_notes: notes } : q));
   };
 
-  const totalPages = Math.max(1, Math.ceil(questions.length / QUESTIONS_PER_PAGE));
+  const filteredQuestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return questions;
+    return questions.filter(iq =>
+      iq.question.toLowerCase().includes(q) ||
+      (iq.tags ?? '').toLowerCase().includes(q) ||
+      (iq.source ?? '').toLowerCase().includes(q)
+    );
+  }, [questions, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / QUESTIONS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * QUESTIONS_PER_PAGE;
-  const pageQuestions = questions.slice(pageStart, pageStart + QUESTIONS_PER_PAGE);
+  const pageQuestions = filteredQuestions.slice(pageStart, pageStart + QUESTIONS_PER_PAGE);
 
   return (
     <div className="rung-interview-page">
@@ -408,13 +419,32 @@ export default function InterviewPage() {
         </div>
       </div>
 
+      <div className="rung-iq-search-row">
+        <div className="rung-search" style={{ flex: 1 }}>
+          <Search size={14} />
+          <input
+            type="search"
+            placeholder="Search questions, tags, or source…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        {search && (
+          <span className="rung-iq-search-count">
+            {filteredQuestions.length} of {questions.length} matching
+          </span>
+        )}
+      </div>
+
       {loading ? (
         <div className="rung-leads-loading" style={{ padding: '32px 0' }}>Loading questions…</div>
-      ) : questions.length === 0 ? (
+      ) : filteredQuestions.length === 0 ? (
         <div className="rung-empty" style={{ marginTop: 16 }}>
-          {tab === 'public'
-            ? 'No questions in the public library yet. Be the first to contribute!'
-            : 'No private questions yet. Add one to start building your prep notes.'}
+          {search
+            ? `No questions match "${search}". Try a different keyword.`
+            : tab === 'public'
+              ? 'No questions in the public library yet. Be the first to contribute!'
+              : 'No private questions yet. Add one to start building your prep notes.'}
         </div>
       ) : (
         <>
@@ -433,7 +463,7 @@ export default function InterviewPage() {
                 ← Prev
               </button>
               <span className="rung-iq-page-info">
-                {pageStart + 1}–{Math.min(pageStart + QUESTIONS_PER_PAGE, questions.length)} of {questions.length}
+                {pageStart + 1}–{Math.min(pageStart + QUESTIONS_PER_PAGE, filteredQuestions.length)} of {filteredQuestions.length}
               </span>
               <button
                 className="rung-iq-page-btn"

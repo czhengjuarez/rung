@@ -348,7 +348,7 @@ leadsRouter.post('/scrape', async (c) => {
       company ? `Company: ${company}`   : '',
     ].filter(Boolean).join('\n');
 
-    const result = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    const result = await c.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
       messages: [
         {
           role: 'system',

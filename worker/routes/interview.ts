@@ -168,7 +168,7 @@ ${body.answer.trim().slice(0, 2000)}`;
 
   let raw = '';
   try {
-    const resp = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    const resp = await c.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },

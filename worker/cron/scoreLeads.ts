@@ -83,7 +83,7 @@ export async function scoreSingleLead(
   }
 
   const userMessage = buildPrompt(lead, criteria);
-  const result = (await ai.run('@cf/meta/llama-3.1-8b-instruct', {
+  const result = (await ai.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
     messages: [
       {
         role: 'system',
@@ -149,7 +149,7 @@ export async function scoreLeads(db: D1Database, ai: Ai): Promise<void> {
 
     try {
       const userMessage = buildPrompt(lead, criteria);
-      const result = await ai.run('@cf/meta/llama-3.1-8b-instruct', {
+      const result = await ai.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
         messages: [
           {
             role: 'system',
