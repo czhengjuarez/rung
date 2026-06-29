@@ -506,6 +506,8 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<LeadEditFields | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -587,9 +589,14 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   };
 
   const clearAll = async () => {
-    if (!window.confirm(`Dismiss all ${leads.length} lead${leads.length !== 1 ? 's' : ''}? This cannot be undone.`)) return;
-    await api.dismissAllLeads();
-    await refresh();
+    setClearing(true);
+    try {
+      await api.dismissAllLeads();
+      await refresh();
+    } finally {
+      setClearing(false);
+      setClearConfirm(false);
+    }
   };
 
   return (
@@ -604,7 +611,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
           {running ? 'Fetching…' : 'Fetch now'}
         </button>
         {leads.length > 0 && (
-          <button className={buttonClass({ variant: 'ghost' })} onClick={clearAll} style={{ color: 'var(--rung-text-muted)' }}>
+          <button className={buttonClass({ variant: 'ghost' })} onClick={() => setClearConfirm(true)} style={{ color: 'var(--rung-text-muted)' }}>
             Clear all
           </button>
         )}
@@ -744,6 +751,26 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {clearConfirm && (
+        <div className="rung-modal-backdrop" onClick={() => setClearConfirm(false)}>
+          <div className="rung-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginBottom: 8 }}>Clear all leads?</h2>
+            <p style={{ margin: '0 0 20px', color: 'var(--rung-text-muted)', fontSize: 14 }}>
+              This will dismiss all {leads.length} new lead{leads.length !== 1 ? 's' : ''}. They'll move to your Dismissed tab and won't appear in the feed again.
+            </p>
+            <div className="rung-modal-actions">
+              <button className={buttonClass({ variant: 'ghost' })} onClick={() => setClearConfirm(false)} disabled={clearing}>
+                Cancel
+              </button>
+              <button className={buttonClass({ variant: 'danger' })} onClick={clearAll} disabled={clearing}>
+                {clearing ? <Loader2 size={14} className="spin" /> : null}
+                {clearing ? 'Clearing…' : 'Clear all'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
