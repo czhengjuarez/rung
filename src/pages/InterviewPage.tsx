@@ -10,6 +10,7 @@ const CATEGORY_COLORS: Record<InterviewCategory, 'blue' | 'purple' | 'amber' | '
   Situational:        'amber',
   Leadership:         'purple',
   'Company-specific': 'red',
+  DesignOps:          'blue',
   Other:              'default',
 };
 

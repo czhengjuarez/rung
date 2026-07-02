@@ -152,8 +152,8 @@ export interface ProfileLink {
   sort_order: number;
 }
 
-export type InterviewCategory = 'Behavioral' | 'Technical' | 'Situational' | 'Leadership' | 'Company-specific' | 'Other';
-export const INTERVIEW_CATEGORIES: InterviewCategory[] = ['Behavioral', 'Technical', 'Situational', 'Leadership', 'Company-specific', 'Other'];
+export type InterviewCategory = 'Behavioral' | 'Technical' | 'Situational' | 'Leadership' | 'Company-specific' | 'DesignOps' | 'Other';
+export const INTERVIEW_CATEGORIES: InterviewCategory[] = ['Behavioral', 'Technical', 'Situational', 'Leadership', 'Company-specific', 'DesignOps', 'Other'];
 
 export interface InterviewQuestion {
   id: string;
