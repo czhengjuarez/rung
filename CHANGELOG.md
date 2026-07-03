@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-02
+
+- **Interview Prep — 44 questions total** — expanded the public library from 22 to 64 questions across all categories:
+  - **Search** — filter questions in real time by keyword, tag, or source
+  - **DesignOps category** — 19 new questions tailored to Design Program Manager interviews (capacity planning, dependency management, exec communication, QA, process design, stakeholder landscapes, and more)
+  - **General additions** — 18 new Behavioral, Leadership, Situational, and Other questions (team success, most challenging project, salary expectations, leadership style, persuasion, and others from Glassdoor and AcademyUX)
+- **AI model upgrade** — all AI features (interview coaching, lead scoring, resume tailoring) now use `llama-3.3-70b-instruct-fp8-fast` (~9× more parameters than the previous model)
+
 ## 2026-06-29
 
 - **Clear all leads** — dismiss your entire leads list in one click from the Leads toolbar. A confirmation modal shows how many leads will be dismissed before anything is removed.
