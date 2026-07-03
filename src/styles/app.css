@@ -381,8 +381,7 @@ a { color: inherit; }
   margin-bottom: var(--rung-space-3);
   padding: var(--rung-space-3);
   background: var(--of-bg-brand-tint);
-  border-radius: var(--rung-radius-sm);
-  border-left: 3px solid var(--rung-accent);
+  border-radius: 0;
 }
 .rung-iq-hint-label {
   display: block;
@@ -1576,8 +1575,7 @@ a { color: inherit; }
   gap: 6px;
   padding: var(--rung-space-3);
   background: var(--rung-surface-2);
-  border-radius: var(--rung-radius-sm);
-  border-left: 3px solid var(--rung-accent);
+  border-radius: 0;
 }
 .rung-coach-question p {
   margin: 0;
