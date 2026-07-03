@@ -4,7 +4,7 @@ import { newId, nowIso } from '../util';
 
 export const interviewRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-const CATEGORIES = ['Behavioral', 'Technical', 'Situational', 'Leadership', 'Company-specific', 'Other'] as const;
+const CATEGORIES = ['Behavioral', 'Technical', 'Situational', 'Leadership', 'Company-specific', 'DesignOps', 'Other'] as const;
 
 // ── Questions ─────────────────────────────────────────────────────────────────
 
@@ -145,7 +145,12 @@ interviewRouter.put('/answers/:questionId', async (c) => {
 
 // POST /api/interview/coach
 interviewRouter.post('/coach', async (c) => {
-  const body = await c.req.json<{ question: string; answer: string; category?: string }>();
+  let body: { question: string; answer: string; category?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid request body.' }, 400);
+  }
   if (!body.question?.trim() || !body.answer?.trim()) {
     return c.json({ error: 'question and answer are required' }, 400);
   }
@@ -166,28 +171,42 @@ Respond with ONLY valid JSON in exactly this shape:
 Candidate's answer:
 ${body.answer.trim().slice(0, 2000)}`;
 
-  let raw = '';
+  let respValue: unknown;
   try {
     const resp = await c.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },
       ],
+      response_format: { type: 'json_object' },
       max_tokens: 512,
-    });
-    raw = (resp as { response?: string }).response ?? '';
-  } catch {
+    } as Parameters<typeof c.env.AI.run>[1]);
+    // With response_format: json_object, Cloudflare returns the parsed object
+    // directly in resp.response rather than a JSON string.
+    respValue = typeof resp === 'string' ? resp : (resp as { response?: unknown }).response;
+  } catch (err) {
+    console.error('[coach] AI.run error:', err);
     return c.json({ error: 'AI unavailable, please try again.' }, 502);
   }
 
-  // Extract JSON from the response (model may wrap it in markdown)
+  // If the model returned an already-parsed object, use it directly
+  if (respValue && typeof respValue === 'object') {
+    return c.json({ feedback: respValue });
+  }
+
+  // Otherwise parse the JSON string (possibly wrapped in markdown fences)
+  const raw = typeof respValue === 'string' ? respValue : '';
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return c.json({ error: 'Could not parse AI response. Try again.' }, 502);
+  if (!match) {
+    console.error('[coach] No JSON found in AI response:', raw.slice(0, 200));
+    return c.json({ error: 'Could not parse AI response. Try again.' }, 502);
+  }
 
   try {
     const feedback = JSON.parse(match[0]);
     return c.json({ feedback });
-  } catch {
+  } catch (err) {
+    console.error('[coach] JSON.parse error:', err, 'raw:', raw.slice(0, 200));
     return c.json({ error: 'Could not parse AI response. Try again.' }, 502);
   }
 });
