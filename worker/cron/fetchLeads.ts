@@ -116,8 +116,12 @@ export interface FetchResult {
 
 export async function runLeadsFetch(db: D1Database, userId?: string): Promise<FetchResult[]> {
   const query = userId
-    ? 'SELECT id, user_id, source_type, slug, url, label FROM lead_sources WHERE active = 1 AND user_id = ?'
-    : 'SELECT id, user_id, source_type, slug, url, label FROM lead_sources WHERE active = 1';
+    ? `SELECT ls.id, ls.user_id, ls.source_type, ls.slug, ls.url, ls.label
+       FROM lead_sources ls JOIN users u ON u.id = ls.user_id
+       WHERE ls.active = 1 AND u.leads_paused = 0 AND ls.user_id = ?`
+    : `SELECT ls.id, ls.user_id, ls.source_type, ls.slug, ls.url, ls.label
+       FROM lead_sources ls JOIN users u ON u.id = ls.user_id
+       WHERE ls.active = 1 AND u.leads_paused = 0`;
   const { results: sources } = userId
     ? await db.prepare(query).bind(userId).all<Source>()
     : await db.prepare(query).all<Source>();

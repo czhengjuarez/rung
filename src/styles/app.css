@@ -1197,6 +1197,16 @@ a { color: inherit; }
   border-bottom: 1px solid var(--rung-border);
 }
 .rung-leads-count { font-size: 13px; color: var(--rung-text-muted); flex: 1; }
+.rung-leads-paused-banner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--of-fg-warning);
+  background: var(--of-bg-warning-tint, color-mix(in srgb, var(--of-fg-warning) 10%, transparent));
+  border-bottom: 1px solid var(--rung-border);
+}
 
 /* Clip-from-URL form */
 .rung-clip-form {

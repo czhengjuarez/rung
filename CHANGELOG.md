@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-05
+
+- **Pause / Resume lead fetching** — new button in the Job Leads toolbar lets you globally pause all lead discovery. While paused, the daily 7 AM cron skips your sources and "Fetch now" is disabled. An amber banner reminds you it's paused. One click to resume.
+
 ## 2026-07-02
 
 - **Interview Prep — 64 questions total** — expanded the public library from 22 to 64 questions across all categories:

@@ -103,7 +103,9 @@ export const api = {
   dismissLead: (id: string) => request<{ ok: boolean }>(`/api/leads/${id}/dismiss`, { method: 'POST' }),
   dismissAllLeads: () => request<{ ok: boolean; dismissed: number }>('/api/leads/dismiss-all', { method: 'POST' }),
   convertLead: (id: string) => request<{ application: Application }>(`/api/leads/${id}/convert`, { method: 'POST' }),
-  runLeads: () => request<{ ok: boolean; inserted: number; sources: Array<{ source_id: string; label: string; fetched: number; inserted: number; error: string | null }> }>('/api/leads/run', { method: 'POST' }),
+  getLeadsPaused: () => request<{ paused: boolean }>('/api/leads/paused'),
+  toggleLeadsPause: () => request<{ paused: boolean }>('/api/leads/pause-toggle', { method: 'POST' }),
+  runLeads: () => request<{ ok: boolean; paused?: boolean; inserted: number; sources: Array<{ source_id: string; label: string; fetched: number; inserted: number; error: string | null }> }>('/api/leads/run', { method: 'POST' }),
 
   listInterviewQuestions: (tab: 'public' | 'private', category?: string) =>
     request<{ questions: InterviewQuestion[] }>(`/api/interview/questions?tab=${tab}${category ? `&category=${encodeURIComponent(category)}` : ''}`),

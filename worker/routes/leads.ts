@@ -567,11 +567,37 @@ leadsRouter.post('/:id/score', async (c) => {
 });
 
 // Manual trigger — scoped to the current user, returns per-source counts
+leadsRouter.get('/paused', async (c) => {
+  const user = c.get('user');
+  const row = await c.env.DB
+    .prepare('SELECT leads_paused FROM users WHERE id = ?')
+    .bind(user.id).first<{ leads_paused: number }>();
+  return c.json({ paused: row?.leads_paused === 1 });
+});
+
+leadsRouter.post('/pause-toggle', async (c) => {
+  const user = c.get('user');
+  const row = await c.env.DB
+    .prepare('SELECT leads_paused FROM users WHERE id = ?')
+    .bind(user.id).first<{ leads_paused: number }>();
+  const next = row?.leads_paused === 1 ? 0 : 1;
+  await c.env.DB
+    .prepare('UPDATE users SET leads_paused = ? WHERE id = ?')
+    .bind(next, user.id).run();
+  return c.json({ paused: next === 1 });
+});
+
 leadsRouter.post('/run', async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
+  const row = await db
+    .prepare('SELECT leads_paused FROM users WHERE id = ?')
+    .bind(user.id).first<{ leads_paused: number }>();
+  if (row?.leads_paused === 1) {
+    return c.json({ ok: true, paused: true, inserted: 0, sources: [] });
+  }
   const fetchResults = await runLeadsFetch(db, user.id);
   await scoreLeads(db, c.env.AI);
   const totalInserted = fetchResults.reduce((s, r) => s + r.inserted, 0);
-  return c.json({ ok: true, inserted: totalInserted, sources: fetchResults });
+  return c.json({ ok: true, paused: false, inserted: totalInserted, sources: fetchResults });
 });

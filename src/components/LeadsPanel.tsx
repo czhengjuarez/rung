@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { buttonClass, inputClass, labelClass, selectClass, textareaClass } from '@ops-forward/keel';
 import {
-  Check, ChevronDown, ChevronUp, ExternalLink, Link, Loader2, Pencil, PlayCircle, Plus, RefreshCw, Trash2, X
+  Check, ChevronDown, ChevronUp, ExternalLink, Link, Loader2, PauseCircle, Pencil, PlayCircle, Plus, RefreshCw, Trash2, X
 } from 'lucide-react';
 import { api } from '../api';
 import type { JobLead, LeadCriteria, LeadSource } from '../types';
@@ -508,13 +508,18 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
   const [savingEdit, setSavingEdit] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [togglingPause, setTogglingPause] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try { setLeads((await api.listLeads('new')).leads); } finally { setLoading(false); }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    api.getLeadsPaused().then(r => setPaused(r.paused));
+  }, []);
 
   // Refresh when the tab regains focus — covers the case where a lead was
   // added via the browser extension while the user was on another tab.
@@ -583,9 +588,17 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
     setRunResults(null);
     try {
       const result = await api.runLeads();
-      setRunResults(result.sources);
+      if (!result.paused) setRunResults(result.sources);
       await refresh();
     } finally { setRunning(false); }
+  };
+
+  const togglePause = async () => {
+    setTogglingPause(true);
+    try {
+      const r = await api.toggleLeadsPause();
+      setPaused(r.paused);
+    } finally { setTogglingPause(false); }
   };
 
   const clearAll = async () => {
@@ -606,7 +619,7 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
         <button className={buttonClass({ variant: 'ghost' })} onClick={() => { setClipOpen(o => !o); setRunResults(null); }} title="Add lead from URL">
           <Link size={14} /> Clip URL
         </button>
-        <button className={buttonClass({ variant: 'ghost' })} onClick={run} disabled={running}>
+        <button className={buttonClass({ variant: 'ghost' })} onClick={run} disabled={running || paused}>
           {running ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />}
           {running ? 'Fetching…' : 'Fetch now'}
         </button>
@@ -615,7 +628,26 @@ function LeadsTable({ onConverted }: { onConverted: () => void }) {
             Clear all
           </button>
         )}
+        <button
+          className={buttonClass({ variant: paused ? 'tint' : 'ghost' })}
+          onClick={togglePause}
+          disabled={togglingPause}
+          title={paused ? 'Resume lead fetching' : 'Pause lead fetching'}
+          style={{ marginLeft: 'auto' }}
+        >
+          {togglingPause
+            ? <Loader2 size={14} className="spin" />
+            : paused ? <PlayCircle size={14} /> : <PauseCircle size={14} />}
+          {paused ? 'Resume' : 'Pause'}
+        </button>
       </div>
+
+      {paused && (
+        <div className="rung-leads-paused-banner">
+          <PauseCircle size={13} />
+          Lead fetching is paused — daily pulls and "Fetch now" are disabled until you resume.
+        </div>
+      )}
 
       {clipOpen && (
         <ClipForm
