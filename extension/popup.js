@@ -26,20 +26,35 @@ async function api(path, options = {}) {
 
 // ── Scrape current tab ────────────────────────────────────────────────────────
 
-async function scrapeTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return { title: '', company: '', location: '', description: '', url: tab?.url || '' };
-
+function sendScrapeMessage(tabId) {
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tab.id, { type: 'RUNG_SCRAPE' }, (response) => {
-      if (chrome.runtime.lastError || !response?.ok) {
-        // Content script not available (e.g. chrome:// page) — just use URL
-        resolve({ title: '', company: '', location: '', description: '', url: tab.url || '' });
-      } else {
-        resolve(response);
-      }
+    chrome.tabs.sendMessage(tabId, { type: 'RUNG_SCRAPE' }, (response) => {
+      if (chrome.runtime.lastError || !response?.ok) resolve(null);
+      else resolve(response);
     });
   });
+}
+
+async function scrapeTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const empty = { title: '', company: '', location: '', description: '', url: tab?.url || '' };
+  if (!tab?.id) return empty;
+
+  // Try the content script that auto-loaded with the page.
+  let response = await sendScrapeMessage(tab.id);
+
+  // If it didn't answer (tab opened before install, or extension was updated
+  // and the old script is orphaned), inject content.js fresh and retry.
+  if (!response) {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+      response = await sendScrapeMessage(tab.id);
+    } catch {
+      // Restricted page (chrome://, Web Store, etc.) — fall through with URL only
+    }
+  }
+
+  return response || empty;
 }
 
 // ── Populate form ─────────────────────────────────────────────────────────────
@@ -96,6 +111,15 @@ async function doAutofill({ silent = false } = {}) {
         method: 'POST',
         body: JSON.stringify({ url: urlToScrape }),
       });
+      // Discard results that are actually a login/authwall page (LinkedIn and
+      // others serve one to anonymous server-side fetches).
+      const JUNK_TITLE = /\b(sign\s?in|log\s?in|login|authwall|join now|just a moment|access denied|security check)\b/i;
+      if (result.title && JUNK_TITLE.test(result.title)) {
+        result.title = null;
+        result.company = null;
+        result.location = null;
+        result.salary_hint = null;
+      }
       const hasServerData = result.title || result.company;
       if (hasServerData) {
         fillForm({

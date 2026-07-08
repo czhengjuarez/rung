@@ -219,7 +219,12 @@ function detectScraper() {
 }
 
 // ── Message listener ──────────────────────────────────────────────────────────
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+// Guard against double registration when popup.js re-injects this script
+// (e.g. after an extension update orphans the original copy).
+if (window.__rungScrapeListener) {
+  chrome.runtime.onMessage.removeListener(window.__rungScrapeListener);
+}
+window.__rungScrapeListener = (msg, _sender, sendResponse) => {
   if (msg.type !== 'RUNG_SCRAPE') return;
   try {
     const scraper = detectScraper();
@@ -237,4 +242,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     sendResponse({ ok: false, error: String(err) });
   }
   return false;
-});
+};
+chrome.runtime.onMessage.addListener(window.__rungScrapeListener);

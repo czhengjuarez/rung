@@ -2,6 +2,9 @@
 
 ## 2026-07-07
 
+- **Extension: self-healing page reader** — fixed auto-fill returning nothing (or "LinkedIn Login, Sign in" as the job title):
+  - If the in-page reader doesn't respond (tab was open before the extension was installed/updated), the popup now re-injects it automatically and retries — no page refresh needed
+  - Login/authwall pages returned by the server-side fallback are now detected and discarded instead of being pasted into the title field (both in the extension and the in-app "clip URL" feature)
 - **LinkedIn extension fix** — company, title, and salary now fill correctly on LinkedIn job pages:
   - Company lookup is scoped to the job detail panel on search pages (was accidentally picking up sidebar job listings instead of the selected job)
   - Salary now scans all insight chips with `querySelectorAll` (was stopping at the first chip, which is rarely the compensation one)

@@ -376,9 +376,22 @@ ${pageText}`,
     if (jsonMatch) extracted = JSON.parse(jsonMatch[0]);
   } catch { /* AI failed — fall through to best-effort */ }
 
+  // Sites like LinkedIn serve a login/authwall page to anonymous fetches —
+  // don't return its title as if it were the job.
+  const JUNK_TITLE = /\b(sign\s?in|log\s?in|login|authwall|join now|just a moment|access denied|security check)\b/i;
+  const finalTitle   = title || extracted.title || null;
+  const finalCompany = company || extracted.company || null;
+  if (finalTitle && JUNK_TITLE.test(finalTitle)) {
+    return c.json({
+      title: null, company: null, location: null, salary_hint: null,
+      description: null, source: 'blocked',
+      error: 'This page requires sign-in and could not be read server-side.',
+    });
+  }
+
   return c.json({
-    title:       title    || extracted.title       || null,
-    company:     company  || extracted.company     || null,
+    title:       finalTitle,
+    company:     finalCompany,
     location:    extracted.location    || null,
     salary_hint: extracted.salary_hint || null,
     description: extracted.description || ogDesc   || null,
