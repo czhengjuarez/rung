@@ -2,6 +2,14 @@
 
 ## 2026-07-07
 
+- **LinkedIn extension fix** — company, title, and salary now fill correctly on LinkedIn job pages:
+  - Company lookup is scoped to the job detail panel on search pages (was accidentally picking up sidebar job listings instead of the selected job)
+  - Salary now scans all insight chips with `querySelectorAll` (was stopping at the first chip, which is rarely the compensation one)
+  - Server-side scrape fallback now triggers when company is missing, not just when title is missing — so if the content script finds a title but misses the company, the server-side og:title parser fills the gap
+  - Server-side fill no longer overwrites fields already populated by the content script
+
+## 2026-07-07 (earlier)
+
 - **First-time visitor intro** — login page now shows a brief philosophy section below the sign-in card: what Rung is for (deliberate tracking, interview practice, curated lead discovery) and what it is not (mass-apply bot, resume blaster, scraper). Dashboard empty state replaced with a welcome card that carries the same message and tells new users how to start.
 
 ## 2026-07-05

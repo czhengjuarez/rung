@@ -83,13 +83,13 @@ async function doAutofill({ silent = false } = {}) {
   }
 
   // ── Step 2: server-side scrape ────────────────────────────────────────────
-  // Always run if title is still missing — title is the proof we read the
-  // actual job panel. Company/salary can come from other elements on the page.
-  // Server result fills only the fields still blank (overwriteEmpty=true).
-  const missingTitle = !document.getElementById('f-title').value.trim();
-  const urlToScrape  = data.url || (await getCurrentTabUrl());
+  // Run if title or company is still missing after the content-script pass.
+  // Server result fills only the fields still blank.
+  const missingTitle   = !document.getElementById('f-title').value.trim();
+  const missingCompany = !document.getElementById('f-company').value.trim();
+  const urlToScrape    = data.url || (await getCurrentTabUrl());
 
-  if (missingTitle && urlToScrape) {
+  if ((missingTitle || missingCompany) && urlToScrape) {
     if (!silent) showAutofillStatus('Reading via Rung…');
     try {
       const result = await api('/api/leads/scrape', {
@@ -104,7 +104,7 @@ async function doAutofill({ silent = false } = {}) {
           location:    result.location    || '',
           salary_hint: result.salary_hint || '',
           url:         urlToScrape,
-        }, { overwriteEmpty: true });
+        }, { overwriteEmpty: false }); // only fill empty fields, don't overwrite
         if (!silent) showAutofillStatus('✓ Fields filled from page');
       } else {
         if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
@@ -112,7 +112,7 @@ async function doAutofill({ silent = false } = {}) {
     } catch {
       if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
     }
-  } else if (!missingTitle) {
+  } else if (!missingTitle && !missingCompany) {
     if (!silent) showAutofillStatus('✓ Fields filled from page');
   } else {
     if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);

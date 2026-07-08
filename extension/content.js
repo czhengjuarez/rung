@@ -32,8 +32,14 @@ function scrapeLinkedIn() {
   const canonical = document.querySelector('link[rel="canonical"]');
   if (canonical?.href) jobUrl = canonical.href;
 
+  // ── Job detail panel — scope queries here on search pages to avoid
+  //    picking up data from other jobs in the sidebar ──
+  const panel =
+    document.querySelector('.job-details-jobs-unified-top-card') ||
+    document.querySelector('.jobs-search__job-details') ||
+    document.body;
+
   // ── Title ──
-  // The job title is always the primary h1 on the page.
   const title =
     text(
       'h1.job-details-jobs-unified-top-card__job-title',
@@ -43,20 +49,21 @@ function scrapeLinkedIn() {
       '.jobs-search__job-details h1',
       '.jobs-search__job-details h2.t-24',
     ) ||
-    // Last-resort: first visible h1 on the page
     (() => {
-      const h1 = document.querySelector('h1');
+      const h1 = panel.querySelector('h1') || document.querySelector('h1');
       return h1?.innerText.trim() || null;
     })();
 
   // ── Company ──
   // LinkedIn always links to /company/SLUG — that anchor text is the company name.
+  // Scope to the detail panel to avoid picking up sidebar job company links.
   const companyFromLink = (() => {
-    const anchors = [...document.querySelectorAll('a[href*="linkedin.com/company/"], a[href^="/company/"]')];
-    // Pick the first visible one that has text (skip logo links)
+    const root = panel !== document.body ? panel : document;
+    const anchors = [...root.querySelectorAll('a[href*="linkedin.com/company/"], a[href^="/company/"]')];
     for (const a of anchors) {
-      const t = a.innerText.trim();
-      if (t && t.length > 1 && t.length < 100) return t;
+      const t = a.innerText.trim().replace(/\s+/g, ' ');
+      // Skip short UI labels ("Follow", "Connect") and logo-only anchors
+      if (t && t.length > 1 && t.length < 80 && !/^(follow|connect|see all jobs)$/i.test(t)) return t;
     }
     return null;
   })();
@@ -81,22 +88,22 @@ function scrapeLinkedIn() {
 
   // ── Salary ──
   // LinkedIn shows salary in a "compensation" insight chip when available.
-  // The text contains $ so we can look for it generically.
+  // Use querySelectorAll — the first insight chip is often not the salary one.
   const salary_hint = (() => {
-    const candidates = [
+    for (const sel of [
       '.job-details-jobs-unified-top-card__job-insight',
+      '.jobs-unified-top-card__job-insight',
+      '[class*="job-insight"]',
       '[class*="compensation"]',
       '[class*="salary"]',
       '[class*="pay-range"]',
-    ];
-    for (const sel of candidates) {
-      const el = document.querySelector(sel);
-      if (el) {
+    ]) {
+      for (const el of document.querySelectorAll(sel)) {
         const t = el.innerText.trim();
         if (/\$|£|€/.test(t)) return t.split('\n')[0].trim();
       }
     }
-    // Scan all visible text nodes for a salary pattern near the top of the page
+    // Scan all visible text for a salary pattern
     const allText = document.body?.innerText || '';
     const m = allText.match(/(?:\$|£|€)\s*\d[\d,]*(?:k|K)?(?:\s*[-–—]\s*(?:\$|£|€)?\s*\d[\d,]*(?:k|K)?)?(?:\s*(?:\/yr|\/year|per year|annually))?/);
     return m ? m[0].trim() : null;
