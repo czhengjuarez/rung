@@ -39,11 +39,15 @@ A built-in question bank. Rung ships with 22 well-sourced questions (from Linked
 
 ### Browser extension
 
-A Chrome/Edge extension lets you clip any job posting to your leads list without leaving the page. It scrapes the title, company, location, and salary directly from the DOM (LinkedIn, Indeed, Greenhouse, Lever, Workday, and generic fallback), then falls back to a server-side scrape if the content script can't read the page.
+A Chrome/Edge extension lets you clip any job posting to your leads list without leaving the page. It scrapes the title, company, location, and salary directly from the DOM (LinkedIn, Indeed, Greenhouse, Lever, Workday, and generic fallback), then falls back to a server-side scrape if the in-page reader can't find the fields.
+
+The popup injects the reader script into the active tab and calls it directly (`chrome.scripting.executeScript`), reading its return value rather than relying on a pre-loaded content script listening for messages — this keeps auto-fill working on tabs that were open before the extension was installed or updated, without requiring a page refresh. The popup header shows the installed version so you can confirm you're on the latest build after re-downloading.
+
+Server-side scraping fetches the page from the Cloudflare Worker with a browser user-agent and tries, in order: JSON-LD `JobPosting` data → OpenGraph/meta tags → AI extraction. Pages that require sign-in (LinkedIn included) return a login/authwall page to anonymous server-side requests — both the extension and the server-side scraper detect and discard authwall titles rather than filling them in. **LinkedIn specifically must be read via the in-page DOM scraper**, since LinkedIn blocks datacenter IPs (including Cloudflare Workers) at the network level regardless of user-agent.
 
 The extension uses your existing Rung session cookie — no separate login required. If you're not logged in, it opens the Rung web app so you can sign in first.
 
-See [`extension/`](#extension) in the project layout for the files. Load it in Chrome via **Extensions → Load unpacked → select the `extension/` folder**.
+See [`extension/`](#extension) in the project layout for the files. Load it in Chrome via **Extensions → Load unpacked → select the `extension/` folder**. After pulling extension changes, reload it from `chrome://extensions` (unpacked installs) or re-download and re-extract the zip, then reload.
 
 ### Feedback
 A feedback button in the sidebar footer lets any user submit a bug report, feature request, or general comment. Submissions are stored in D1 and emailed to the instance owner via [Resend](https://resend.com). Requires a `RESEND_API_KEY` secret (free tier covers 100 emails/day). To read submissions directly: `SELECT * FROM feedback ORDER BY created_at DESC` in the D1 console.
