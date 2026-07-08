@@ -218,18 +218,12 @@ function detectScraper() {
   return scrapeGeneric;
 }
 
-// ── Message listener ──────────────────────────────────────────────────────────
-// Guard against double registration when popup.js re-injects this script
-// (e.g. after an extension update orphans the original copy).
-if (window.__rungScrapeListener) {
-  chrome.runtime.onMessage.removeListener(window.__rungScrapeListener);
-}
-window.__rungScrapeListener = (msg, _sender, sendResponse) => {
-  if (msg.type !== 'RUNG_SCRAPE') return;
+// ── Scrape entry point ────────────────────────────────────────────────────────
+function runScrape() {
   try {
     const scraper = detectScraper();
     const data = scraper();
-    sendResponse({
+    return {
       ok:          true,
       title:       data.title       || '',
       company:     data.company     || '',
@@ -237,10 +231,25 @@ window.__rungScrapeListener = (msg, _sender, sendResponse) => {
       salary_hint: data.salary_hint || '',
       description: (data.description || '').slice(0, 3000),
       url:         data.url || window.location.href,
-    });
+    };
   } catch (err) {
-    sendResponse({ ok: false, error: String(err) });
+    return { ok: false, error: String(err), url: window.location.href };
   }
+}
+
+// Exposed for popup.js, which injects this file then calls the function
+// directly via chrome.scripting.executeScript — more reliable than messaging.
+window.__rungScrapeNow = runScrape;
+
+// ── Message listener (legacy path, kept as fallback) ─────────────────────────
+// Guard against double registration when popup.js re-injects this script
+// (e.g. after an extension update orphans the original copy).
+if (window.__rungScrapeListener) {
+  chrome.runtime.onMessage.removeListener(window.__rungScrapeListener);
+}
+window.__rungScrapeListener = (msg, _sender, sendResponse) => {
+  if (msg.type !== 'RUNG_SCRAPE') return;
+  sendResponse(runScrape());
   return false;
 };
 chrome.runtime.onMessage.addListener(window.__rungScrapeListener);

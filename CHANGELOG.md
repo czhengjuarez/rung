@@ -2,6 +2,7 @@
 
 ## 2026-07-07
 
+- **Extension v1.1.0: direct page reading** — the popup now injects the reader and calls it directly (no message passing), which works regardless of when the tab was opened or when the extension was updated. The popup header shows the build version (v1.1.0) so you can confirm you're on the latest download, and failure messages now say *why* a page couldn't be read. Server-side scraping uses a real browser user-agent (note: LinkedIn blocks datacenter IPs regardless, so LinkedIn reading happens in-page).
 - **Extension: self-healing page reader** — fixed auto-fill returning nothing (or "LinkedIn Login, Sign in" as the job title):
   - If the in-page reader doesn't respond (tab was open before the extension was installed/updated), the popup now re-injects it automatically and retries — no page refresh needed
   - Login/authwall pages returned by the server-side fallback are now detected and discarded instead of being pasted into the title field (both in the extension and the in-app "clip URL" feature)

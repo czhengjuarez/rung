@@ -49,6 +49,12 @@ body {
   letter-spacing: -0.3px;
   color: var(--text);
 }
+.ext-version {
+  font-size: 10px;
+  color: var(--muted, #888);
+  align-self: flex-end;
+  padding-bottom: 1px;
+}
 
 /* ── Header ── */
 .header {

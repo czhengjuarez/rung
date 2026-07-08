@@ -35,26 +35,36 @@ function sendScrapeMessage(tabId) {
   });
 }
 
+// Why the in-page read failed, for status messages: null = fine
+let lastScrapeError = null;
+
 async function scrapeTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const empty = { title: '', company: '', location: '', description: '', url: tab?.url || '' };
-  if (!tab?.id) return empty;
+  lastScrapeError = null;
+  if (!tab?.id) { lastScrapeError = 'no-tab'; return empty; }
 
-  // Try the content script that auto-loaded with the page.
-  let response = await sendScrapeMessage(tab.id);
-
-  // If it didn't answer (tab opened before install, or extension was updated
-  // and the old script is orphaned), inject content.js fresh and retry.
-  if (!response) {
-    try {
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
-      response = await sendScrapeMessage(tab.id);
-    } catch {
-      // Restricted page (chrome://, Web Store, etc.) — fall through with URL only
-    }
+  // Primary path: inject content.js fresh (idempotent) and call the scraper
+  // directly, reading its return value. No message passing — this works even
+  // when the original content script was orphaned by an extension update.
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => (window.__rungScrapeNow ? window.__rungScrapeNow() : null),
+    });
+    if (result?.ok) return result;
+    if (result && !result.ok) lastScrapeError = result.error || 'scrape-threw';
+  } catch (err) {
+    // Restricted page (chrome://, Web Store) or injection denied
+    lastScrapeError = String(err?.message || err);
   }
 
-  return response || empty;
+  // Fallback: message the auto-loaded content script.
+  const response = await sendScrapeMessage(tab.id);
+  if (response) { lastScrapeError = null; return response; }
+  if (!lastScrapeError) lastScrapeError = 'no-response';
+  return empty;
 }
 
 // ── Populate form ─────────────────────────────────────────────────────────────
@@ -78,6 +88,13 @@ function showAutofillStatus(msg, isError = false) {
   const el = document.getElementById('autofill-status');
   el.textContent = msg;
   el.className = `autofill-status${isError ? ' error' : ' ok'}`;
+}
+
+function readFailureMessage() {
+  if (lastScrapeError) {
+    return `Page reader failed (${lastScrapeError}) — fill in manually.`;
+  }
+  return 'Could not find job details on this page — fill in manually.';
 }
 
 async function doAutofill({ silent = false } = {}) {
@@ -131,15 +148,15 @@ async function doAutofill({ silent = false } = {}) {
         }, { overwriteEmpty: false }); // only fill empty fields, don't overwrite
         if (!silent) showAutofillStatus('✓ Fields filled from page');
       } else {
-        if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+        if (!silent) showAutofillStatus(readFailureMessage(), true);
       }
     } catch {
-      if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+      if (!silent) showAutofillStatus(readFailureMessage(), true);
     }
   } else if (!missingTitle && !missingCompany) {
     if (!silent) showAutofillStatus('✓ Fields filled from page');
   } else {
-    if (!silent) showAutofillStatus('Could not read this page — fill in manually.', true);
+    if (!silent) showAutofillStatus(readFailureMessage(), true);
   }
 
   btn.disabled = false;
@@ -177,6 +194,10 @@ async function init() {
   }
 
   show('view-form');
+
+  // Show build version so users can confirm they're on the latest download
+  const verEl = document.getElementById('ext-version');
+  if (verEl) verEl.textContent = `v${chrome.runtime.getManifest().version}`;
 
   // Scrape current page silently on open
   const data = await doAutofill({ silent: true });
