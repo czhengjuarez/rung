@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-07
+
+- **First-time visitor intro** — login page now shows a brief philosophy section below the sign-in card: what Rung is for (deliberate tracking, interview practice, curated lead discovery) and what it is not (mass-apply bot, resume blaster, scraper). Dashboard empty state replaced with a welcome card that carries the same message and tells new users how to start.
+
 ## 2026-07-05
 
 - **Pause / Resume lead fetching** — new button in the Job Leads toolbar lets you globally pause all lead discovery. While paused, the daily 7 AM cron skips your sources and "Fetch now" is disabled. An amber banner reminds you it's paused. One click to resume.

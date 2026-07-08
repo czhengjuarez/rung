@@ -23,6 +23,20 @@ export default function LoginPage() {
           <GoogleG /> Sign in with Google
         </a>
       </div>
+
+      <div className="rung-login-philosophy">
+        <p className="rung-login-philosophy-lead">Built for intentional job searching.</p>
+        <ul>
+          <li>Track each application deliberately — status, contacts, notes, timeline.</li>
+          <li>Practice interview questions and get AI coaching on your answers.</li>
+          <li>Discover leads from sources you choose, scored for fit against your criteria.</li>
+        </ul>
+        <p className="rung-login-philosophy-note">
+          Rung is mostly manual by design. It is not a mass-apply bot, a resume blaster, or a scraper.
+          If you are looking to fire off 500 applications with one click, this is not that.
+          Fewer applications, more thought — that is the idea.
+        </p>
+      </div>
     </div>
   );
 }

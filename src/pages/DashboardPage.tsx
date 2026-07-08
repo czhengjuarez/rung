@@ -456,11 +456,22 @@ export default function DashboardPage() {
           </div>
 
           {filteredActive.length === 0 ? (
-            <div className="rung-empty">
-              {apps.filter(a => !CLOSED_STATUSES.includes(a.status)).length === 0
-                ? 'No applications yet — add one or import from CSV.'
-                : 'No applications match your filters.'}
-            </div>
+            apps.filter(a => !CLOSED_STATUSES.includes(a.status)).length === 0 ? (
+              <div className="rung-welcome-card">
+                <p className="rung-welcome-lead">Welcome to Rung — a tracker built for intentional job searching.</p>
+                <p className="rung-welcome-body">
+                  Add each application by hand. Write notes, track contacts, move it through stages as things progress.
+                  The goal is to know exactly where you stand with every company you care about — not to maximize volume.
+                </p>
+                <p className="rung-welcome-note">
+                  Rung is not a mass-apply tool or a job scraper. It is designed for people who would rather send ten
+                  thoughtful applications than five hundred automated ones.
+                </p>
+                <p className="rung-welcome-start">Add your first application above to get started, or import from CSV.</p>
+              </div>
+            ) : (
+              <div className="rung-empty">No applications match your filters.</div>
+            )
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={filteredActive.map(a => a.id)} strategy={verticalListSortingStrategy}>

@@ -717,6 +717,40 @@ a { color: inherit; }
 }
 .rung-google-btn:hover { background: var(--rung-surface-2); }
 
+.rung-login-philosophy {
+  width: 100%;
+  max-width: 380px;
+  margin-top: var(--rung-space-5);
+  text-align: left;
+}
+.rung-login-philosophy-lead {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rung-text);
+  margin: 0 0 8px;
+}
+.rung-login-philosophy ul {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.rung-login-philosophy ul li {
+  font-size: 13px;
+  color: var(--rung-text-muted);
+  line-height: 1.5;
+}
+.rung-login-philosophy-note {
+  font-size: 12px;
+  color: var(--rung-text-muted);
+  opacity: 0.7;
+  line-height: 1.6;
+  margin: 0;
+  border-top: 1px solid var(--rung-border);
+  padding-top: 10px;
+}
+
 .rung-links {
   display: grid;
   gap: var(--rung-space-2);
@@ -1101,6 +1135,37 @@ a { color: inherit; }
   background: var(--rung-surface);
   border: 1px dashed var(--rung-border);
   border-radius: var(--rung-radius-md);
+}
+.rung-welcome-card {
+  padding: var(--rung-space-5) var(--rung-space-6);
+  background: var(--rung-surface);
+  border: 1px dashed var(--rung-border);
+  border-radius: var(--rung-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rung-welcome-lead {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rung-text);
+  margin: 0;
+}
+.rung-welcome-body, .rung-welcome-note, .rung-welcome-start {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--rung-text-muted);
+}
+.rung-welcome-note {
+  opacity: 0.75;
+  font-size: 12px;
+}
+.rung-welcome-start {
+  font-size: 12px;
+  border-top: 1px solid var(--rung-border);
+  padding-top: 10px;
+  opacity: 0.7;
 }
 
 /* ── Leads panel ─────────────────────────────────────────────────────────── */
