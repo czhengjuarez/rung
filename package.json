@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "cf:dev": "wrangler dev",
-    "cf:deploy": "npm run build && wrangler deploy",
+    "cf:deploy": "npm run build && zip -r /tmp/rung-extension.zip extension/ -x '*.DS_Store' && wrangler r2 object put rung-documents/public/rung-extension.zip --file /tmp/rung-extension.zip --content-type application/zip --remote && wrangler deploy",
     "db:apply:local": "wrangler d1 execute rung --local --file=./migrations/0001_initial.sql",
     "db:apply:remote": "wrangler d1 execute rung --remote --file=./migrations/0001_initial.sql"
   },
